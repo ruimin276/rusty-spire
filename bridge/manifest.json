@@ -1,0 +1,11 @@
+{
+  "id": "sls2_combat_oracle",
+  "name": "STS2 Combat Oracle",
+  "author": "sls2-combat-solver",
+  "description": "Local HTTP oracle bridge for exact single-combat solver experiments.",
+  "version": "0.1.3",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": true
+}

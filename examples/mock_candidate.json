@@ -1,0 +1,36 @@
+{
+  "oracle": {"type": "mock"},
+  "initial_state": {
+    "id": "start",
+    "player": {"hp": 70, "block": 0},
+    "combat": {"won": false, "lost": false, "turn": 1},
+    "metrics": {"powers_played": 0},
+    "enemies": [{"id": "enemy", "hp": 10}]
+  },
+  "mock": {
+    "states": {
+      "start": {
+        "id": "start",
+        "player": {"hp": 70, "block": 0},
+        "combat": {"won": false, "lost": false, "turn": 1},
+        "metrics": {"powers_played": 0},
+        "enemies": [{"id": "enemy", "hp": 10}]
+      },
+      "win": {
+        "id": "win",
+        "player": {"hp": 70, "block": 0},
+        "combat": {"won": true, "lost": false, "turn": 1},
+        "metrics": {"powers_played": 0},
+        "enemies": [{"id": "enemy", "hp": 0}]
+      }
+    },
+    "actions": {
+      "start": [{"id": "candidate_card", "type": "card", "card_type": "attack"}],
+      "win": []
+    },
+    "transitions": {
+      "start": {"candidate_card": "win"},
+      "win": {}
+    }
+  }
+}
