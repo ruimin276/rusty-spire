@@ -1,12 +1,15 @@
 [package]
-name = "sls2-combat-core"
+name = "sls2-combat-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[[bin]]
+name = "sls2-combat"
+path = "src/main.rs"
+
 [dependencies]
-blake3.workspace = true
+clap.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-sha2.workspace = true
-thiserror.workspace = true
+sls2-combat-core = { path = "../sls2-combat-core" }

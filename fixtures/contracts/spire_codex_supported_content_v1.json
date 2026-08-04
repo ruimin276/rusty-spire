@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "source": {
+    "name": "Spire Codex",
+    "repository": "https://github.com/ptrlrd/spire-codex",
+    "stable_game_version": "v0.107.1",
+    "stable_content_sha256": "97ec3fe802f0f69e935c9408767bd3c03c26207fe4eb5b2aec8230c6cfba4f2a",
+    "snapshot_endpoints": [
+      "cards",
+      "characters",
+      "relics",
+      "potions",
+      "monsters",
+      "powers",
+      "encounters",
+      "ascensions"
+    ]
+  },
+  "content": {
+    "cards": {
+      "ASCENDERS_BANE": {
+        "cost": -1,
+        "keywords": ["Ethereal", "Unplayable", "Eternal"]
+      },
+      "BASH": {
+        "cost": 2,
+        "damage": 8,
+        "upgrade_damage": 10,
+        "power": "Vulnerable",
+        "power_amount": 2,
+        "upgrade_power_amount": 3
+      },
+      "DEFEND_IRONCLAD": {"cost": 1, "block": 5, "upgrade_block": 8},
+      "DEFEND_SILENT": {"cost": 1, "block": 5, "upgrade_block": 8},
+      "NEUTRALIZE": {
+        "cost": 0,
+        "damage": 3,
+        "upgrade_damage": 4,
+        "power": "Weak",
+        "power_amount": 1,
+        "upgrade_power_amount": 2
+      },
+      "STRIKE_IRONCLAD": {"cost": 1, "damage": 6, "upgrade_damage": 9},
+      "STRIKE_SILENT": {"cost": 1, "damage": 6, "upgrade_damage": 9},
+      "SURVIVOR": {"cost": 1, "block": 8, "upgrade_block": 11}
+    },
+    "relics": {
+      "BURNING_BLOOD": {"heal_at_combat_end": 6},
+      "RING_OF_THE_SNAKE": {"additional_opening_draw": 2}
+    },
+    "monsters": {
+      "FUZZY_WURM_CRAWLER": {
+        "hp": [55, 57],
+        "ascension_hp": [58, 59],
+        "initial_state": "FIRST_ACID_GOOP",
+        "moves": {
+          "ACID_GOOP": {"damage": 4, "ascension_damage": 6},
+          "FIRST_ACID_GOOP": {"damage": 4, "ascension_damage": 6},
+          "INHALE": {"power": "STRENGTH", "power_amount": 7}
+        }
+      },
+      "NIBBIT": {
+        "hp": [42, 46],
+        "ascension_hp": [44, 48],
+        "initial_state": "INIT_MOVE",
+        "moves": {
+          "BUTT": {"damage": 12, "ascension_damage": 13},
+          "HISS": {"power": "STRENGTH", "power_amount": 2},
+          "SLICE": {"damage": 6, "ascension_damage": 7, "block": 5}
+        }
+      },
+      "SHRINKER_BEETLE": {
+        "hp": [38, 40],
+        "ascension_hp": [40, 42],
+        "initial_state": "SHRINKER",
+        "moves": {
+          "CHOMP": {"damage": 7, "ascension_damage": 8},
+          "SHRINKER": {"custom_effect": "SHRINK"},
+          "STOMP": {"damage": 13, "ascension_damage": 14}
+        }
+      }
+    },
+    "combat_modifiers": {
+      "Vulnerable": 1.5,
+      "Weak": 0.75
+    }
+  },
+  "source_fingerprints": {
+    "note": "Hashes and byte sizes published by Spire Codex extraction manifests.",
+    "v0.108.0": {
+      "NIBBIT": [4661, "0c5a130fd73602a50335b7316cf58c8d"],
+      "FUZZY_WURM_CRAWLER": [4258, "d6de732ee1aadd6d2b825d31276ecc83"],
+      "SHRINKER_BEETLE": [2808, "b7cc4ffda2a74208e18a0dbecf94290f"],
+      "NEUTRALIZE": [1954, "bf224967dd64fd7aa5b6646b99a0b25d"],
+      "SURVIVOR": [1267, "ff2d460edef577b7285a470e1f149c6a"],
+      "RNG": [10949, "9c6c1946f9e395256ad4a7cd973ccde8"]
+    },
+    "v0.110.0": {
+      "NIBBIT": [4661, "0c5a130fd73602a50335b7316cf58c8d"],
+      "FUZZY_WURM_CRAWLER": [4258, "d6de732ee1aadd6d2b825d31276ecc83"],
+      "SHRINKER_BEETLE": [2808, "b7cc4ffda2a74208e18a0dbecf94290f"],
+      "NEUTRALIZE": [1954, "bf224967dd64fd7aa5b6646b99a0b25d"],
+      "SURVIVOR": [1267, "ff2d460edef577b7285a470e1f149c6a"],
+      "RNG": [11613, "9d2e5c9208fd8c583dfaff54071b0712"]
+    }
+  },
+  "limitations": [
+    "The API exposes values and parsed state machines, not executable combat semantics.",
+    "Ascension variants for power and block amounts are not represented consistently by the parser.",
+    "Power duration timing, effect ordering, target selection, RNG consumption, and rounding still require live traces or direct code verification.",
+    "A matching entity source fingerprint does not prove that shared engine code is unchanged."
+  ]
+}

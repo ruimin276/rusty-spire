@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "catalog_sha256": "c0f20eda010011810970f89eed9de79728b27ddce45a60a6657617520f32ec75",
+  "ascension_level": 0,
+  "rng": {
+    "run_seed": "4",
+    "profile": "isolated_combat_xoshiro_v1"
+  },
+  "character": {
+    "id": "CHARACTER.SILENT",
+    "current_hp": 70,
+    "max_hp": 70
+  },
+  "deck": [
+    {"id": "CARD.STRIKE_SILENT", "quantity": 5, "upgrade_level": 0},
+    {"id": "CARD.DEFEND_SILENT", "quantity": 5, "upgrade_level": 0},
+    {"id": "CARD.NEUTRALIZE", "quantity": 1, "upgrade_level": 0},
+    {"id": "CARD.SURVIVOR", "quantity": 1, "upgrade_level": 0}
+  ],
+  "relics": [{"id": "RELIC.RING_OF_THE_SNAKE"}],
+  "potions": [],
+  "encounter": {
+    "type": "custom",
+    "enemies": [{"id": "MONSTER.FUZZY_WURM_CRAWLER", "current_hp": 56, "max_hp": 56}]
+  },
+  "policy": "minimize_hp_loss"
+}

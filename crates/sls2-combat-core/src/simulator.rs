@@ -3,8 +3,9 @@ use std::collections::{HashSet, VecDeque};
 
 use thiserror::Error;
 
+use crate::catalog::{CombatCatalog, CombatCatalogV1, RelicCombatEffect};
 use crate::rng;
-use crate::state::{Action, CardInstance, CombatState, Decision, EnemyState, PowerState, Scenario};
+use crate::state::{Action, CardInstance, CombatState, Decision, EnemyState, PowerState};
 
 const STRIKE: &str = "CARD.STRIKE_IRONCLAD";
 const DEFEND: &str = "CARD.DEFEND_IRONCLAD";
@@ -26,15 +27,25 @@ const STRENGTH: &str = "POWER.STRENGTH_POWER";
 pub enum SimulatorError {
     #[error("invalid JSON: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("invalid combat catalog: {0}")]
+    Catalog(String),
+    #[error("catalog hash mismatch: expected {expected}, got {actual}")]
+    CatalogMismatch { expected: String, actual: String },
+    #[error("invalid combat setup: {0}")]
+    InvalidSetup(String),
+    #[error("unknown catalog id: {0}")]
+    UnknownId(String),
     #[error("invalid simulator snapshot: {0}")]
     InvalidSnapshot(String),
     #[error("unsupported mechanic: {0}")]
-    Unsupported(String),
+    UnsupportedMechanic(String),
     #[error("invalid action: {0}")]
     InvalidAction(String),
 }
 
-pub struct Simulator;
+pub struct Simulator<'a> {
+    catalog: &'a CombatCatalog,
+}
 
 #[derive(Clone, Debug)]
 enum Effect {
@@ -45,22 +56,17 @@ enum Effect {
     GainPlayerBlock(i32),
     ApplyEnemyPower {
         target: String,
-        model_id: &'static str,
+        model_id: String,
         amount: i32,
     },
 }
 
-impl Simulator {
-    pub fn validate_scenario(scenario: &Scenario) -> Result<(), SimulatorError> {
-        if scenario.oracle.oracle_type != "simulator" {
-            return Err(SimulatorError::InvalidSnapshot(
-                "Rust simulator requires oracle.type=simulator".into(),
-            ));
-        }
-        Self::validate_state(&scenario.initial_state)
+impl<'a> Simulator<'a> {
+    pub fn new(catalog: &'a CombatCatalog) -> Self {
+        Self { catalog }
     }
 
-    pub fn validate_state(state: &CombatState) -> Result<(), SimulatorError> {
+    pub fn validate_state(&self, state: &CombatState) -> Result<(), SimulatorError> {
         if state.snapshot_schema != 2 {
             return Err(SimulatorError::InvalidSnapshot(format!(
                 "snapshot_schema must be 2, got {}",
@@ -68,10 +74,10 @@ impl Simulator {
             )));
         }
         if state.provenance.modded_gameplay {
-            return Err(SimulatorError::Unsupported("gameplay mods".into()));
+            return Err(SimulatorError::UnsupportedMechanic("gameplay mods".into()));
         }
         if state.provenance.content_revision != "base" {
-            return Err(SimulatorError::Unsupported(format!(
+            return Err(SimulatorError::UnsupportedMechanic(format!(
                 "content revision {}",
                 state.provenance.content_revision
             )));
@@ -80,7 +86,7 @@ impl Simulator {
             state.player.model_id.as_str(),
             "CHARACTER.IRONCLAD" | "CHARACTER.SILENT"
         ) {
-            return Err(SimulatorError::Unsupported(format!(
+            return Err(SimulatorError::UnsupportedMechanic(format!(
                 "character {}",
                 state.player.model_id
             )));
@@ -92,14 +98,16 @@ impl Simulator {
             )));
         }
         if let Some(ascension_level) = state.combat.ascension_level {
-            if ascension_level > 10 {
+            if ascension_level > self.catalog.data.ascensions.max_supported_level {
                 return Err(SimulatorError::InvalidSnapshot(format!(
                     "ascension_level must be between 0 and 10, got {ascension_level}"
                 )));
             }
             for enemy in &state.enemies {
-                let expected_tough = ascension_level >= 8;
-                let expected_deadly = ascension_level >= 9;
+                let expected_tough =
+                    ascension_level >= self.catalog.data.ascensions.tough_enemies_level;
+                let expected_deadly =
+                    ascension_level >= self.catalog.data.ascensions.deadly_enemies_level;
                 if enemy.ai.tough_enemies != expected_tough
                     || enemy.ai.deadly_enemies != expected_deadly
                 {
@@ -113,11 +121,8 @@ impl Simulator {
                 }
             }
         }
-        if !matches!(
-            state.rng.algorithm.as_str(),
-            "dotnet_system_random_v1" | "xoshiro256_star_star_v1"
-        ) {
-            return Err(SimulatorError::Unsupported(format!(
+        if state.rng.algorithm != "xoshiro256_star_star_v1" {
+            return Err(SimulatorError::UnsupportedMechanic(format!(
                 "rng algorithm {}",
                 state.rng.algorithm
             )));
@@ -128,31 +133,22 @@ impl Simulator {
             ));
         }
         if !state.player.potions.is_empty() {
-            return Err(SimulatorError::Unsupported("potions".into()));
+            return Err(SimulatorError::UnsupportedMechanic("potions".into()));
         }
         if state.enemies.len() > 1
             || (!matches!(state.decision, Decision::Terminal) && state.enemies.len() != 1)
         {
-            return Err(SimulatorError::Unsupported(format!(
+            return Err(SimulatorError::UnsupportedMechanic(format!(
                 "the parity slice requires one supported single enemy, got {} enemies",
                 state.enemies.len()
             )));
         }
         for relic in &state.player.relics {
-            let supported = match state.player.model_id.as_str() {
-                "CHARACTER.IRONCLAD" => matches!(
-                    relic.model_id.as_str(),
-                    "RELIC.BURNING_BLOOD" | "RELIC.WINGED_BOOTS"
-                ),
-                "CHARACTER.SILENT" => relic.model_id == "RELIC.RING_OF_THE_SNAKE",
-                _ => false,
-            };
-            if !supported {
-                return Err(SimulatorError::Unsupported(format!(
-                    "combat-active or unknown relic {}",
-                    relic.model_id
-                )));
-            }
+            self.catalog
+                .data
+                .relics
+                .get(&relic.model_id)
+                .ok_or_else(|| SimulatorError::UnknownId(relic.model_id.clone()))?;
         }
         let mut instance_ids = HashSet::new();
         for card in state
@@ -163,7 +159,7 @@ impl Simulator {
             .chain(&state.exhaust_pile)
             .chain(&state.play_pile)
         {
-            let supported = match state.player.model_id.as_str() {
+            let supported_handler = match state.player.model_id.as_str() {
                 "CHARACTER.IRONCLAD" => matches!(
                     card.model_id.as_str(),
                     STRIKE | DEFEND | BASH | ASCENDERS_BANE
@@ -174,14 +170,17 @@ impl Simulator {
                 ),
                 _ => false,
             };
-            if !supported {
-                return Err(SimulatorError::Unsupported(format!(
+            if !supported_handler {
+                return Err(SimulatorError::UnsupportedMechanic(format!(
                     "card {}",
                     card.model_id
                 )));
             }
+            if !self.catalog.data.cards.contains_key(&card.model_id) {
+                return Err(SimulatorError::UnknownId(card.model_id.clone()));
+            }
             if card.upgrade_level > 1 {
-                return Err(SimulatorError::Unsupported(format!(
+                return Err(SimulatorError::UnsupportedMechanic(format!(
                     "upgrade level {} on card {}",
                     card.upgrade_level, card.instance_id
                 )));
@@ -198,12 +197,12 @@ impl Simulator {
                 enemy.model_id.as_str(),
                 NIBBIT | FUZZY_WURM_CRAWLER | SHRINKER_BEETLE
             ) {
-                return Err(SimulatorError::Unsupported(format!(
+                return Err(SimulatorError::UnsupportedMechanic(format!(
                     "enemy {}",
                     enemy.model_id
                 )));
             }
-            if enemy.hp > 0 && !valid_enemy_move(enemy) {
+            if enemy.hp > 0 && !valid_enemy_move(&self.catalog.data, enemy) {
                 return Err(SimulatorError::InvalidSnapshot(format!(
                     "unknown {} move {}",
                     enemy.model_id, enemy.ai.current_move
@@ -211,15 +210,15 @@ impl Simulator {
             }
         }
         validate_decision(state)?;
-        validate_powers(&state.player.powers)?;
+        validate_powers(&self.catalog.data, &state.player.powers)?;
         for enemy in &state.enemies {
-            validate_powers(&enemy.powers)?;
+            validate_powers(&self.catalog.data, &enemy.powers)?;
         }
         Ok(())
     }
 
-    pub fn legal_actions(state: &CombatState) -> Result<Vec<Action>, SimulatorError> {
-        Self::validate_state(state)?;
+    pub fn legal_actions(&self, state: &CombatState) -> Result<Vec<Action>, SimulatorError> {
+        self.validate_state(state)?;
         if state.combat.won || state.combat.lost || matches!(state.decision, Decision::Terminal) {
             return Ok(Vec::new());
         }
@@ -277,7 +276,7 @@ impl Simulator {
                         })
                         .collect())
                 } else {
-                    Err(SimulatorError::Unsupported(format!(
+                    Err(SimulatorError::UnsupportedMechanic(format!(
                         "multi-card selection {choice_id} ({min}..{max})"
                     )))
                 }
@@ -286,16 +285,21 @@ impl Simulator {
         }
     }
 
-    pub fn step(state: &CombatState, action: &Action) -> Result<CombatState, SimulatorError> {
-        Self::validate_state(state)?;
-        let canonical_action = Self::legal_actions(state)?
+    pub fn step(
+        &self,
+        state: &CombatState,
+        action: &Action,
+    ) -> Result<CombatState, SimulatorError> {
+        self.validate_state(state)?;
+        let canonical_action = self
+            .legal_actions(state)?
             .into_iter()
             .find(|candidate| candidate.id == action.id)
             .ok_or_else(|| SimulatorError::InvalidAction(action.id.clone()))?;
         let mut next = state.clone();
         match canonical_action.action_type.as_str() {
-            "card" | "play_card" => play_card(&mut next, &canonical_action)?,
-            "end_turn" => end_turn(&mut next)?,
+            "card" | "play_card" => play_card(&self.catalog.data, &mut next, &canonical_action)?,
+            "end_turn" => end_turn(&self.catalog.data, &mut next)?,
             "choice" => resolve_card_selection(&mut next, &canonical_action)?,
             other => return Err(SimulatorError::InvalidAction(other.into())),
         }
@@ -303,8 +307,8 @@ impl Simulator {
         Ok(next)
     }
 
-    pub fn prepare_combat_start(state: &CombatState) -> Result<CombatState, SimulatorError> {
-        Self::validate_state(state)?;
+    pub fn prepare_combat_start(&self, state: &CombatState) -> Result<CombatState, SimulatorError> {
+        self.validate_state(state)?;
         if state.combat.turn != 1
             || !state.hand.is_empty()
             || !state.discard_pile.is_empty()
@@ -323,34 +327,38 @@ impl Simulator {
             .get_mut("shuffle")
             .ok_or_else(|| SimulatorError::InvalidSnapshot("missing shuffle RNG".into()))?;
         shuffle_in_place(&mut next.draw_pile, shuffle, &algorithm);
-        let hand_size = if next.player.model_id == "CHARACTER.SILENT"
-            && next
-                .player
-                .relics
-                .iter()
-                .any(|relic| relic.model_id == "RELIC.RING_OF_THE_SNAKE")
-        {
-            7
-        } else {
-            5
-        };
+        let additional_draw = next
+            .player
+            .relics
+            .iter()
+            .filter_map(|relic| self.catalog.data.relics.get(&relic.model_id))
+            .map(|relic| match relic.combat_effect {
+                RelicCombatEffect::AdditionalOpeningDraw { amount } => amount,
+                RelicCombatEffect::Inert => 0,
+            })
+            .sum::<usize>();
+        let hand_size = 5 + additional_draw;
         draw_to_hand(&mut next, hand_size)?;
         Ok(next)
     }
 
-    pub fn state_hash(state: &CombatState) -> Result<String, SimulatorError> {
+    pub fn state_hash(&self, state: &CombatState) -> Result<String, SimulatorError> {
+        self.validate_state(state)?;
         let bytes = serde_json::to_vec(state)?;
         Ok(blake3::hash(&bytes).to_hex().to_string())
     }
 }
 
-fn validate_powers(powers: &[PowerState]) -> Result<(), SimulatorError> {
+fn validate_powers(catalog: &CombatCatalogV1, powers: &[PowerState]) -> Result<(), SimulatorError> {
     for power in powers {
+        if !catalog.powers.contains_key(&power.model_id) {
+            return Err(SimulatorError::UnknownId(power.model_id.clone()));
+        }
         if !matches!(
             power.model_id.as_str(),
             VULNERABLE | WEAK | SHRINK | STRENGTH
         ) {
-            return Err(SimulatorError::Unsupported(format!(
+            return Err(SimulatorError::UnsupportedMechanic(format!(
                 "power {}",
                 power.model_id
             )));
@@ -359,22 +367,11 @@ fn validate_powers(powers: &[PowerState]) -> Result<(), SimulatorError> {
     Ok(())
 }
 
-fn valid_enemy_move(enemy: &EnemyState) -> bool {
-    match enemy.model_id.as_str() {
-        NIBBIT => matches!(
-            enemy.ai.current_move.as_str(),
-            "BUTT_MOVE" | "SLICE_MOVE" | "HISS_MOVE"
-        ),
-        FUZZY_WURM_CRAWLER => matches!(
-            enemy.ai.current_move.as_str(),
-            "FIRST_ACID_GOOP_MOVE" | "INHALE_MOVE" | "ACID_GOOP_MOVE"
-        ),
-        SHRINKER_BEETLE => matches!(
-            enemy.ai.current_move.as_str(),
-            "SHRINKER_MOVE" | "CHOMP_MOVE" | "STOMP_MOVE"
-        ),
-        _ => false,
-    }
+fn valid_enemy_move(catalog: &CombatCatalogV1, enemy: &EnemyState) -> bool {
+    catalog
+        .monsters
+        .get(&enemy.model_id)
+        .is_some_and(|monster| monster.moves.contains_key(&enemy.ai.current_move))
 }
 
 fn validate_decision(state: &CombatState) -> Result<(), SimulatorError> {
@@ -388,7 +385,7 @@ fn validate_decision(state: &CombatState) -> Result<(), SimulatorError> {
         return Ok(());
     };
     if *min != 1 || *max != 1 || !choice_id.starts_with("survivor:") {
-        return Err(SimulatorError::Unsupported(format!(
+        return Err(SimulatorError::UnsupportedMechanic(format!(
             "card selection {choice_id} ({min}..{max})"
         )));
     }
@@ -436,7 +433,11 @@ fn card_action(card: &CardInstance, target: Option<(&EnemyState, usize)>) -> Act
     }
 }
 
-fn play_card(state: &mut CombatState, action: &Action) -> Result<(), SimulatorError> {
+fn play_card(
+    catalog: &CombatCatalogV1,
+    state: &mut CombatState,
+    action: &Action,
+) -> Result<(), SimulatorError> {
     let instance_id = action.combat_card_index.as_deref().ok_or_else(|| {
         SimulatorError::InvalidAction("card action missing combat_card_index".into())
     })?;
@@ -451,51 +452,79 @@ fn play_card(state: &mut CombatState, action: &Action) -> Result<(), SimulatorEr
     let cost = card.effective_cost();
     state.player.energy -= cost;
     state.play_pile.push(card.clone());
+    let definition = catalog
+        .cards
+        .get(&card.model_id)
+        .ok_or_else(|| SimulatorError::UnknownId(card.model_id.clone()))?;
     let mut effects = VecDeque::new();
     match card.model_id.as_str() {
         STRIKE | SILENT_STRIKE => effects.push_back(Effect::DamageEnemy {
             target: required_target(action)?.to_owned(),
-            amount: if card.upgrade_level > 0 { 9 } else { 6 },
+            amount: definition
+                .damage
+                .as_ref()
+                .ok_or_else(|| SimulatorError::Catalog(format!("{} has no damage", card.model_id)))?
+                .at(card.upgrade_level),
         }),
-        DEFEND | SILENT_DEFEND => {
-            effects.push_back(Effect::GainPlayerBlock(if card.upgrade_level > 0 {
-                8
-            } else {
-                5
-            }))
-        }
+        DEFEND | SILENT_DEFEND => effects.push_back(Effect::GainPlayerBlock(
+            definition
+                .block
+                .as_ref()
+                .ok_or_else(|| SimulatorError::Catalog(format!("{} has no block", card.model_id)))?
+                .at(card.upgrade_level),
+        )),
         BASH => {
             let target = required_target(action)?.to_owned();
             effects.push_back(Effect::DamageEnemy {
                 target: target.clone(),
-                amount: if card.upgrade_level > 0 { 10 } else { 8 },
+                amount: definition
+                    .damage
+                    .as_ref()
+                    .ok_or_else(|| {
+                        SimulatorError::Catalog(format!("{} has no damage", card.model_id))
+                    })?
+                    .at(card.upgrade_level),
             });
+            let power = definition.power.as_ref().ok_or_else(|| {
+                SimulatorError::Catalog(format!("{} has no power", card.model_id))
+            })?;
             effects.push_back(Effect::ApplyEnemyPower {
                 target,
-                model_id: VULNERABLE,
-                amount: if card.upgrade_level > 0 { 3 } else { 2 },
+                model_id: power.id.clone(),
+                amount: power.amount.at(card.upgrade_level),
             });
         }
         NEUTRALIZE => {
             let target = required_target(action)?.to_owned();
             effects.push_back(Effect::DamageEnemy {
                 target: target.clone(),
-                amount: if card.upgrade_level > 0 { 4 } else { 3 },
+                amount: definition
+                    .damage
+                    .as_ref()
+                    .ok_or_else(|| {
+                        SimulatorError::Catalog(format!("{} has no damage", card.model_id))
+                    })?
+                    .at(card.upgrade_level),
             });
+            let power = definition.power.as_ref().ok_or_else(|| {
+                SimulatorError::Catalog(format!("{} has no power", card.model_id))
+            })?;
             effects.push_back(Effect::ApplyEnemyPower {
                 target,
-                model_id: WEAK,
-                amount: if card.upgrade_level > 0 { 2 } else { 1 },
+                model_id: power.id.clone(),
+                amount: power.amount.at(card.upgrade_level),
             });
         }
-        SURVIVOR => effects.push_back(Effect::GainPlayerBlock(if card.upgrade_level > 0 {
-            11
-        } else {
-            8
-        })),
-        other => return Err(SimulatorError::Unsupported(format!("card {other}"))),
+        SURVIVOR => effects.push_back(Effect::GainPlayerBlock(
+            definition
+                .block
+                .as_ref()
+                .ok_or_else(|| SimulatorError::Catalog(format!("{} has no block", card.model_id)))?
+                .at(card.upgrade_level),
+        )),
+        other => return Err(SimulatorError::UnsupportedMechanic(format!("card {other}"))),
     }
-    resolve_effects(state, effects)?;
+    resolve_effects(catalog, state, effects)?;
     if state.enemies.iter().all(|enemy| enemy.hp <= 0) {
         state.enemies.retain(|enemy| enemy.hp > 0);
         update_terminal(state);
@@ -537,9 +566,9 @@ fn resolve_card_selection(state: &mut CombatState, action: &Action) -> Result<()
         .choice_id
         .as_deref()
         .ok_or_else(|| SimulatorError::InvalidAction("choice_id is required".into()))?;
-    let survivor_id = choice_id
-        .strip_prefix("survivor:")
-        .ok_or_else(|| SimulatorError::Unsupported(format!("card selection {choice_id}")))?;
+    let survivor_id = choice_id.strip_prefix("survivor:").ok_or_else(|| {
+        SimulatorError::UnsupportedMechanic(format!("card selection {choice_id}"))
+    })?;
     let selected_id = action.selection.first().ok_or_else(|| {
         SimulatorError::InvalidAction("Survivor selection must contain one card".into())
     })?;
@@ -555,12 +584,15 @@ fn resolve_card_selection(state: &mut CombatState, action: &Action) -> Result<()
 }
 
 fn resolve_effects(
+    catalog: &CombatCatalogV1,
     state: &mut CombatState,
     mut effects: VecDeque<Effect>,
 ) -> Result<(), SimulatorError> {
     while let Some(effect) = effects.pop_front() {
         match effect {
-            Effect::DamageEnemy { target, amount } => damage_enemy(state, &target, amount)?,
+            Effect::DamageEnemy { target, amount } => {
+                damage_enemy(catalog, state, &target, amount)?
+            }
             Effect::GainPlayerBlock(amount) => state.player.block += amount,
             Effect::ApplyEnemyPower {
                 target,
@@ -574,7 +606,7 @@ fn resolve_effects(
                     break;
                 }
                 let enemy = target_enemy_by_id_mut(state, &target)?;
-                add_power(&mut enemy.powers, model_id, amount);
+                add_power(&mut enemy.powers, &model_id, amount);
             }
         }
     }
@@ -582,13 +614,14 @@ fn resolve_effects(
 }
 
 fn damage_enemy(
+    catalog: &CombatCatalogV1,
     state: &mut CombatState,
     target: &str,
     base_damage: i32,
 ) -> Result<(), SimulatorError> {
     let attacker_powers = state.player.powers.clone();
     let enemy = target_enemy_by_id_mut(state, target)?;
-    let damage = attack_damage(base_damage, &attacker_powers, &enemy.powers, true);
+    let damage = attack_damage(catalog, base_damage, &attacker_powers, &enemy.powers, true);
     apply_damage(&mut enemy.hp, &mut enemy.block, damage);
     Ok(())
 }
@@ -611,7 +644,7 @@ fn target_enemy_by_id_mut<'a>(
         .ok_or_else(|| SimulatorError::InvalidAction(format!("unknown target {target}")))
 }
 
-fn end_turn(state: &mut CombatState) -> Result<(), SimulatorError> {
+fn end_turn(catalog: &CombatCatalogV1, state: &mut CombatState) -> Result<(), SimulatorError> {
     let mut retained = Vec::new();
     for card in state.hand.drain(..) {
         if card.ethereal || card.model_id == ASCENDERS_BANE {
@@ -626,7 +659,7 @@ fn end_turn(state: &mut CombatState) -> Result<(), SimulatorError> {
 
     for enemy in state.enemies.iter_mut().filter(|enemy| enemy.hp > 0) {
         enemy.block = 0;
-        execute_enemy_move(&mut state.player, enemy)?;
+        execute_enemy_move(catalog, &mut state.player, enemy)?;
     }
     tick_power(&mut state.player.powers, VULNERABLE);
     tick_power(&mut state.player.powers, WEAK);
@@ -648,109 +681,44 @@ fn end_turn(state: &mut CombatState) -> Result<(), SimulatorError> {
 }
 
 fn execute_enemy_move(
+    catalog: &CombatCatalogV1,
     player: &mut crate::state::PlayerState,
     enemy: &mut EnemyState,
 ) -> Result<(), SimulatorError> {
-    match enemy.model_id.as_str() {
-        NIBBIT => execute_nibbit_move(player, enemy),
-        FUZZY_WURM_CRAWLER => execute_fuzzy_wurm_crawler_move(player, enemy),
-        SHRINKER_BEETLE => execute_shrinker_beetle_move(player, enemy),
-        other => Err(SimulatorError::Unsupported(format!("enemy {other}"))),
-    }
-}
-
-fn execute_nibbit_move(
-    player: &mut crate::state::PlayerState,
-    enemy: &mut EnemyState,
-) -> Result<(), SimulatorError> {
+    let monster = catalog
+        .monsters
+        .get(&enemy.model_id)
+        .ok_or_else(|| SimulatorError::UnknownId(enemy.model_id.clone()))?;
     let current = enemy.ai.current_move.clone();
-    match current.as_str() {
-        "BUTT_MOVE" => {
-            let damage = if enemy.ai.deadly_enemies { 13 } else { 12 };
-            damage_player(player, enemy, damage);
-            enemy.ai.current_move = "SLICE_MOVE".into();
-        }
-        "SLICE_MOVE" => {
-            let damage = if enemy.ai.deadly_enemies { 7 } else { 6 };
-            damage_player(player, enemy, damage);
-            enemy.block += if enemy.ai.tough_enemies { 6 } else { 5 };
-            enemy.ai.current_move = "HISS_MOVE".into();
-        }
-        "HISS_MOVE" => {
-            add_power(
-                &mut enemy.powers,
-                STRENGTH,
-                if enemy.ai.deadly_enemies { 3 } else { 2 },
-            );
-            enemy.ai.current_move = "BUTT_MOVE".into();
-        }
-        other => {
-            return Err(SimulatorError::InvalidSnapshot(format!(
-                "unknown Nibbit move {other}"
-            )));
+    let movement = monster.moves.get(&current).cloned().ok_or_else(|| {
+        SimulatorError::InvalidSnapshot(format!("unknown {} move {current}", enemy.model_id))
+    })?;
+    if let Some(damage) = movement.damage {
+        damage_player(catalog, player, enemy, damage.at(enemy.ai.deadly_enemies));
+    }
+    if let Some(block) = movement.block {
+        enemy.block += block.at(enemy.ai.tough_enemies);
+    }
+    if let Some(power) = movement.power {
+        let amount = power.amount.at(enemy.ai.deadly_enemies);
+        match power.target.as_str() {
+            "self" => add_power(&mut enemy.powers, &power.id, amount),
+            "player" => add_power(&mut player.powers, &power.id, amount),
+            other => {
+                return Err(SimulatorError::Catalog(format!(
+                    "unsupported target {other} on {} move {current}",
+                    enemy.model_id
+                )));
+            }
         }
     }
-    enemy.ai.move_history.push(enemy.ai.current_move.clone());
-    Ok(())
-}
-
-fn execute_fuzzy_wurm_crawler_move(
-    player: &mut crate::state::PlayerState,
-    enemy: &mut EnemyState,
-) -> Result<(), SimulatorError> {
-    let current = enemy.ai.current_move.clone();
-    match current.as_str() {
-        "FIRST_ACID_GOOP_MOVE" => {
-            damage_player(player, enemy, if enemy.ai.deadly_enemies { 6 } else { 4 });
-            enemy.ai.current_move = "INHALE_MOVE".into();
-        }
-        "INHALE_MOVE" => {
-            add_power(&mut enemy.powers, STRENGTH, 7);
-            enemy.ai.current_move = "ACID_GOOP_MOVE".into();
-        }
-        "ACID_GOOP_MOVE" => {
-            damage_player(player, enemy, if enemy.ai.deadly_enemies { 6 } else { 4 });
-            enemy.ai.current_move = "FIRST_ACID_GOOP_MOVE".into();
-        }
-        other => {
-            return Err(SimulatorError::InvalidSnapshot(format!(
-                "unknown Fuzzy Wurm Crawler move {other}"
-            )));
-        }
-    }
-    enemy.ai.move_history.push(enemy.ai.current_move.clone());
-    Ok(())
-}
-
-fn execute_shrinker_beetle_move(
-    player: &mut crate::state::PlayerState,
-    enemy: &mut EnemyState,
-) -> Result<(), SimulatorError> {
-    let current = enemy.ai.current_move.clone();
-    match current.as_str() {
-        "SHRINKER_MOVE" => {
-            add_power(&mut player.powers, SHRINK, 1);
-            enemy.ai.current_move = "CHOMP_MOVE".into();
-        }
-        "CHOMP_MOVE" => {
-            damage_player(player, enemy, if enemy.ai.deadly_enemies { 8 } else { 7 });
-            enemy.ai.current_move = "STOMP_MOVE".into();
-        }
-        "STOMP_MOVE" => {
-            damage_player(player, enemy, if enemy.ai.deadly_enemies { 14 } else { 13 });
-            enemy.ai.current_move = "CHOMP_MOVE".into();
-        }
-        other => {
-            return Err(SimulatorError::InvalidSnapshot(format!(
-                "unknown Shrinker Beetle move {other}"
-            )));
-        }
-    }
+    enemy.ai.current_move = movement.next_move;
     enemy.ai.move_history.push(enemy.ai.current_move.clone());
     Ok(())
 }
 
 fn attack_damage(
+    catalog: &CombatCatalogV1,
     base_damage: i32,
     attacker_powers: &[PowerState],
     defender_powers: &[PowerState],
@@ -759,22 +727,27 @@ fn attack_damage(
     let mut numerator = i64::from(base_damage + power_amount(attacker_powers, STRENGTH));
     let mut denominator = 1_i64;
     if power_amount(attacker_powers, WEAK) > 0 {
-        numerator *= 3;
-        denominator *= 4;
+        numerator *= i64::from(catalog.combat_modifiers.weak.numerator);
+        denominator *= i64::from(catalog.combat_modifiers.weak.denominator);
     }
     if attacker_is_player && power_amount(attacker_powers, SHRINK) > 0 {
-        numerator *= 7;
-        denominator *= 10;
+        numerator *= i64::from(catalog.combat_modifiers.shrink.numerator);
+        denominator *= i64::from(catalog.combat_modifiers.shrink.denominator);
     }
     if power_amount(defender_powers, VULNERABLE) > 0 {
-        numerator *= 3;
-        denominator *= 2;
+        numerator *= i64::from(catalog.combat_modifiers.vulnerable.numerator);
+        denominator *= i64::from(catalog.combat_modifiers.vulnerable.denominator);
     }
     (numerator / denominator).max(0) as i32
 }
 
-fn damage_player(player: &mut crate::state::PlayerState, enemy: &EnemyState, base_damage: i32) {
-    let damage = attack_damage(base_damage, &enemy.powers, &player.powers, false);
+fn damage_player(
+    catalog: &CombatCatalogV1,
+    player: &mut crate::state::PlayerState,
+    enemy: &EnemyState,
+    base_damage: i32,
+) {
+    let damage = attack_damage(catalog, base_damage, &enemy.powers, &player.powers, false);
     apply_damage(&mut player.hp, &mut player.block, damage);
 }
 
@@ -971,10 +944,23 @@ mod tests {
     use crate::state::*;
     use serde_json::Value;
     use std::collections::BTreeMap;
+    use std::sync::OnceLock;
+
+    fn test_catalog() -> &'static CombatCatalog {
+        static CATALOG: OnceLock<CombatCatalog> = OnceLock::new();
+        CATALOG.get_or_init(|| {
+            CombatCatalog::from_json(include_bytes!("../../../catalogs/combat_v0.107.1.json"))
+                .unwrap()
+        })
+    }
+
+    fn simulator() -> Simulator<'static> {
+        Simulator::new(test_catalog())
+    }
 
     fn source_contract() -> Value {
         serde_json::from_str(include_str!(
-            "../../../tests/fixtures/spire_codex_supported_content_v0110.json"
+            "../../../fixtures/contracts/spire_codex_supported_content_v1.json"
         ))
         .unwrap()
     }
@@ -1011,7 +997,7 @@ mod tests {
                 modded_gameplay: false,
             },
             rng: RngBankState {
-                algorithm: "dotnet_system_random_v1".into(),
+                algorithm: "xoshiro256_star_star_v1".into(),
                 run_seed: "TEST".into(),
                 streams: BTreeMap::from([(
                     "shuffle".into(),
@@ -1104,7 +1090,7 @@ mod tests {
             })
             .collect();
         state.rng.algorithm = "xoshiro256_star_star_v1".into();
-        let prepared = Simulator::prepare_combat_start(&state).unwrap();
+        let prepared = simulator().prepare_combat_start(&state).unwrap();
         assert_eq!(prepared.hand.len(), 7);
         assert_eq!(prepared.draw_pile.len(), 5);
         assert_eq!(prepared.rng.streams["shuffle"].counter, 11);
@@ -1114,7 +1100,7 @@ mod tests {
     fn ascension_level_must_match_enemy_tier_flags() {
         let mut input = state();
         input.combat.ascension_level = Some(9);
-        let error = Simulator::validate_state(&input).unwrap_err();
+        let error = simulator().validate_state(&input).unwrap_err();
         assert!(
             error
                 .to_string()
@@ -1123,7 +1109,7 @@ mod tests {
 
         input.enemies[0].ai.tough_enemies = true;
         input.enemies[0].ai.deadly_enemies = true;
-        Simulator::validate_state(&input).unwrap();
+        simulator().validate_state(&input).unwrap();
     }
 
     #[test]
@@ -1148,12 +1134,13 @@ mod tests {
                 input.hand = vec![strike];
                 input.enemies[0].hp = 100;
                 input.enemies[0].max_hp = 100;
-                let action = Simulator::legal_actions(&input)
+                let action = simulator()
+                    .legal_actions(&input)
                     .unwrap()
                     .into_iter()
                     .find(|action| action.action_type == "card")
                     .unwrap();
-                let output = Simulator::step(&input, &action).unwrap();
+                let output = simulator().step(&input, &action).unwrap();
                 assert_eq!(output.enemies[0].hp, 100 - card_path(source_id, field));
             }
         }
@@ -1172,12 +1159,13 @@ mod tests {
                 let mut defend = card("contract-card", model_id, card_path(source_id, "cost"));
                 defend.upgrade_level = upgrade_level;
                 input.hand = vec![defend];
-                let action = Simulator::legal_actions(&input)
+                let action = simulator()
+                    .legal_actions(&input)
                     .unwrap()
                     .into_iter()
                     .find(|action| action.action_type == "card")
                     .unwrap();
-                let output = Simulator::step(&input, &action).unwrap();
+                let output = simulator().step(&input, &action).unwrap();
                 assert_eq!(output.player.block, card_path(source_id, field));
             }
         }
@@ -1203,12 +1191,13 @@ mod tests {
                 input.hand = vec![card];
                 input.enemies[0].hp = 100;
                 input.enemies[0].max_hp = 100;
-                let action = Simulator::legal_actions(&input)
+                let action = simulator()
+                    .legal_actions(&input)
                     .unwrap()
                     .into_iter()
                     .find(|action| action.action_type == "card")
                     .unwrap();
-                let output = Simulator::step(&input, &action).unwrap();
+                let output = simulator().step(&input, &action).unwrap();
                 assert_eq!(
                     output.enemies[0].hp,
                     100 - card_path(source_id, damage_field)
@@ -1244,8 +1233,8 @@ mod tests {
                 input.combat.ascension_level = Some(if deadly { 9 } else { 0 });
                 input.enemies[0].ai.tough_enemies = deadly;
                 input.enemies[0].ai.deadly_enemies = deadly;
-                let end = Simulator::legal_actions(&input).unwrap().pop().unwrap();
-                let output = Simulator::step(&input, &end).unwrap();
+                let end = simulator().legal_actions(&input).unwrap().pop().unwrap();
+                let output = simulator().step(&input, &end).unwrap();
                 let expected = contract_i64(
                     &contract,
                     &["content", "monsters", source_id, "moves", move_id, field],
@@ -1275,8 +1264,8 @@ mod tests {
         ] {
             let mut input = silent_state(enemy_model, move_state);
             input.hand.clear();
-            let end = Simulator::legal_actions(&input).unwrap().pop().unwrap();
-            let output = Simulator::step(&input, &end).unwrap();
+            let end = simulator().legal_actions(&input).unwrap().pop().unwrap();
+            let output = simulator().step(&input, &end).unwrap();
             assert_eq!(
                 power_amount(&output.enemies[0].powers, power_id),
                 contract_i64(
@@ -1302,20 +1291,22 @@ mod tests {
             card("defend", SILENT_DEFEND, 1),
             card("survivor", SURVIVOR, 1),
         ];
-        let survivor = Simulator::legal_actions(&state)
+        let survivor = simulator()
+            .legal_actions(&state)
             .unwrap()
             .into_iter()
             .find(|action| action.card_id.as_deref() == Some(SURVIVOR))
             .unwrap();
-        let selecting = Simulator::step(&state, &survivor).unwrap();
+        let selecting = simulator().step(&state, &survivor).unwrap();
         assert_eq!(selecting.player.block, 8);
         assert!(matches!(selecting.decision, Decision::CardSelection { .. }));
-        let discard_strike = Simulator::legal_actions(&selecting)
+        let discard_strike = simulator()
+            .legal_actions(&selecting)
             .unwrap()
             .into_iter()
             .find(|action| action.selection == ["strike"])
             .unwrap();
-        let resolved = Simulator::step(&selecting, &discard_strike).unwrap();
+        let resolved = simulator().step(&selecting, &discard_strike).unwrap();
         assert!(matches!(resolved.decision, Decision::PlayerAction));
         assert_eq!(resolved.hand[0].instance_id, "defend");
         assert_eq!(
@@ -1332,19 +1323,21 @@ mod tests {
     fn neutralize_weak_reduces_the_next_enemy_attack() {
         let mut state = silent_state(NIBBIT, "BUTT_MOVE");
         state.hand = vec![card("neutralize", NEUTRALIZE, 0)];
-        let neutralize = Simulator::legal_actions(&state)
+        let neutralize = simulator()
+            .legal_actions(&state)
             .unwrap()
             .into_iter()
             .find(|action| action.card_id.as_deref() == Some(NEUTRALIZE))
             .unwrap();
-        let weakened = Simulator::step(&state, &neutralize).unwrap();
+        let weakened = simulator().step(&state, &neutralize).unwrap();
         assert_eq!(power_amount(&weakened.enemies[0].powers, WEAK), 1);
-        let end = Simulator::legal_actions(&weakened)
+        let end = simulator()
+            .legal_actions(&weakened)
             .unwrap()
             .into_iter()
             .find(|action| action.action_type == "end_turn")
             .unwrap();
-        let after = Simulator::step(&weakened, &end).unwrap();
+        let after = simulator().step(&weakened, &end).unwrap();
         assert_eq!(after.player.hp, 61);
         assert_eq!(power_amount(&after.enemies[0].powers, WEAK), 0);
     }
@@ -1353,14 +1346,14 @@ mod tests {
     fn fuzzy_wurm_crawler_uses_its_fixed_scaling_cycle() {
         let mut state = silent_state(FUZZY_WURM_CRAWLER, "FIRST_ACID_GOOP_MOVE");
         state.hand.clear();
-        let end = Simulator::legal_actions(&state).unwrap().pop().unwrap();
-        let after_first = Simulator::step(&state, &end).unwrap();
+        let end = simulator().legal_actions(&state).unwrap().pop().unwrap();
+        let after_first = simulator().step(&state, &end).unwrap();
         assert_eq!(after_first.player.hp, 66);
         assert_eq!(after_first.enemies[0].ai.current_move, "INHALE_MOVE");
-        let after_inhale = Simulator::step(&after_first, &end).unwrap();
+        let after_inhale = simulator().step(&after_first, &end).unwrap();
         assert_eq!(after_inhale.player.hp, 66);
         assert_eq!(power_amount(&after_inhale.enemies[0].powers, STRENGTH), 7);
-        let after_scaled_hit = Simulator::step(&after_inhale, &end).unwrap();
+        let after_scaled_hit = simulator().step(&after_inhale, &end).unwrap();
         assert_eq!(after_scaled_hit.player.hp, 55);
     }
 
@@ -1368,36 +1361,39 @@ mod tests {
     fn shrinker_beetle_reduces_player_attack_damage() {
         let mut state = silent_state(SHRINKER_BEETLE, "SHRINKER_MOVE");
         state.hand.clear();
-        let end = Simulator::legal_actions(&state).unwrap().pop().unwrap();
-        let mut shrunk = Simulator::step(&state, &end).unwrap();
+        let end = simulator().legal_actions(&state).unwrap().pop().unwrap();
+        let mut shrunk = simulator().step(&state, &end).unwrap();
         assert_eq!(power_amount(&shrunk.player.powers, SHRINK), 1);
         shrunk.hand.push(card("strike", SILENT_STRIKE, 1));
-        let strike = Simulator::legal_actions(&shrunk)
+        let strike = simulator()
+            .legal_actions(&shrunk)
             .unwrap()
             .into_iter()
             .find(|action| action.card_id.as_deref() == Some(SILENT_STRIKE))
             .unwrap();
-        let after_strike = Simulator::step(&shrunk, &strike).unwrap();
+        let after_strike = simulator().step(&shrunk, &strike).unwrap();
         assert_eq!(after_strike.enemies[0].hp, 43);
     }
 
     #[test]
     fn bash_then_strike_uses_vulnerable() {
         let state = state();
-        let bash = Simulator::legal_actions(&state)
+        let bash = simulator()
+            .legal_actions(&state)
             .unwrap()
             .into_iter()
             .find(|action| action.card_id.as_deref() == Some(BASH))
             .unwrap();
-        let after_bash = Simulator::step(&state, &bash).unwrap();
+        let after_bash = simulator().step(&state, &bash).unwrap();
         assert_eq!(after_bash.enemies[0].hp, 39);
         assert_eq!(power_amount(&after_bash.enemies[0].powers, VULNERABLE), 2);
-        let strike = Simulator::legal_actions(&after_bash)
+        let strike = simulator()
+            .legal_actions(&after_bash)
             .unwrap()
             .into_iter()
             .find(|action| action.card_id.as_deref() == Some(STRIKE))
             .unwrap();
-        let after_strike = Simulator::step(&after_bash, &strike).unwrap();
+        let after_strike = simulator().step(&after_bash, &strike).unwrap();
         assert_eq!(after_strike.enemies[0].hp, 30);
         assert_eq!(
             state.enemies[0].hp, 47,
@@ -1409,12 +1405,13 @@ mod tests {
     fn nibbit_cycle_and_ascenders_bane_are_exact() {
         let mut state = state();
         state.hand.push(card("3", ASCENDERS_BANE, -1));
-        let end = Simulator::legal_actions(&state)
+        let end = simulator()
+            .legal_actions(&state)
             .unwrap()
             .into_iter()
             .find(|action| action.action_type == "end_turn")
             .unwrap();
-        let after = Simulator::step(&state, &end).unwrap();
+        let after = simulator().step(&state, &end).unwrap();
         assert_eq!(after.player.hp, 58);
         assert_eq!(after.enemies[0].ai.current_move, "SLICE_MOVE");
         assert!(
@@ -1426,18 +1423,54 @@ mod tests {
     }
 
     #[test]
+    fn catalog_drives_ascension_moves_and_inert_relics() {
+        let mut slice = state();
+        slice.hand.clear();
+        slice.combat.ascension_level = Some(9);
+        slice.enemies[0].ai.current_move = "SLICE_MOVE".into();
+        slice.enemies[0].ai.tough_enemies = true;
+        slice.enemies[0].ai.deadly_enemies = true;
+        let end = simulator().legal_actions(&slice).unwrap().pop().unwrap();
+        let after = simulator().step(&slice, &end).unwrap();
+        assert_eq!(after.player.hp, 63);
+        assert_eq!(after.enemies[0].block, 6);
+
+        let mut hiss = slice;
+        hiss.enemies[0].ai.current_move = "HISS_MOVE".into();
+        let end = simulator().legal_actions(&hiss).unwrap().pop().unwrap();
+        let after = simulator().step(&hiss, &end).unwrap();
+        assert_eq!(power_amount(&after.enemies[0].powers, STRENGTH), 3);
+
+        let mut opening = state();
+        opening.hand.clear();
+        opening.draw_pile = (0..8)
+            .map(|index| card(&index.to_string(), STRIKE, 1))
+            .collect();
+        opening.player.relics = vec![
+            ModelState {
+                model_id: "RELIC.BURNING_BLOOD".into(),
+            },
+            ModelState {
+                model_id: "RELIC.WINGED_BOOTS".into(),
+            },
+        ];
+        let opening = simulator().prepare_combat_start(&opening).unwrap();
+        assert_eq!(opening.hand.len(), 5);
+    }
+
+    #[test]
     fn hash_distinguishes_rng_counters() {
         let a = state();
         let mut b = a.clone();
         b.rng.streams.get_mut("shuffle").unwrap().counter = 1;
         assert_ne!(
-            Simulator::state_hash(&a).unwrap(),
-            Simulator::state_hash(&b).unwrap()
+            simulator().state_hash(&a).unwrap(),
+            simulator().state_hash(&b).unwrap()
         );
     }
 
     #[test]
-    fn initial_fisher_yates_matches_seeded_dotnet_vector() {
+    fn initial_fisher_yates_matches_seeded_xoshiro_vector() {
         let mut cards = vec![
             card("0", STRIKE, 1),
             card("1", STRIKE, 1),
@@ -1449,13 +1482,13 @@ mod tests {
             seed: 1,
             counter: 0,
         };
-        shuffle_in_place(&mut cards, &mut stream, "dotnet_system_random_v1");
+        shuffle_in_place(&mut cards, &mut stream, "xoshiro256_star_star_v1");
         assert_eq!(
             cards
                 .iter()
                 .map(|card| card.instance_id.as_str())
                 .collect::<Vec<_>>(),
-            vec!["3", "2", "4", "0", "1"]
+            vec!["4", "0", "1", "2", "3"]
         );
         assert_eq!(stream.counter, 4);
     }
@@ -1485,7 +1518,7 @@ mod tests {
     #[test]
     fn branch_order_cannot_change_repeated_transition() {
         let state = state();
-        let actions = Simulator::legal_actions(&state).unwrap();
+        let actions = simulator().legal_actions(&state).unwrap();
         let strike = actions
             .iter()
             .find(|action| action.card_id.as_deref() == Some(STRIKE))
@@ -1494,12 +1527,12 @@ mod tests {
             .iter()
             .find(|action| action.card_id.as_deref() == Some(DEFEND))
             .unwrap();
-        let first = Simulator::step(&state, strike).unwrap();
-        let _other_branch = Simulator::step(&state, defend).unwrap();
-        let repeated = Simulator::step(&state, strike).unwrap();
+        let first = simulator().step(&state, strike).unwrap();
+        let _other_branch = simulator().step(&state, defend).unwrap();
+        let repeated = simulator().step(&state, strike).unwrap();
         assert_eq!(
-            Simulator::state_hash(&first).unwrap(),
-            Simulator::state_hash(&repeated).unwrap()
+            simulator().state_hash(&first).unwrap(),
+            simulator().state_hash(&repeated).unwrap()
         );
     }
 
@@ -1515,20 +1548,22 @@ mod tests {
             card("d", DEFEND, 1),
             card("e", BASH, 2),
         ];
-        let end = Simulator::legal_actions(&original)
+        let end = simulator()
+            .legal_actions(&original)
             .unwrap()
             .into_iter()
             .find(|action| action.action_type == "end_turn")
             .unwrap();
 
-        let first_run = Simulator::step(&original, &end).unwrap();
-        let strike = Simulator::legal_actions(&original)
+        let first_run = simulator().step(&original, &end).unwrap();
+        let strike = simulator()
+            .legal_actions(&original)
             .unwrap()
             .into_iter()
             .find(|action| action.card_id.as_deref() == Some(STRIKE))
             .unwrap();
-        let _different_branch = Simulator::step(&original, &strike).unwrap();
-        let restarted_run = Simulator::step(&original, &end).unwrap();
+        let _different_branch = simulator().step(&original, &strike).unwrap();
+        let restarted_run = simulator().step(&original, &end).unwrap();
 
         assert_eq!(
             first_run
@@ -1544,8 +1579,8 @@ mod tests {
         );
         assert_eq!(first_run.rng.streams, restarted_run.rng.streams);
         assert_eq!(
-            Simulator::state_hash(&first_run).unwrap(),
-            Simulator::state_hash(&restarted_run).unwrap()
+            simulator().state_hash(&first_run).unwrap(),
+            simulator().state_hash(&restarted_run).unwrap()
         );
     }
 
@@ -1564,16 +1599,23 @@ mod tests {
         ];
         let mut reduced = full.clone();
         reduced.discard_pile.retain(|card| card.instance_id != "c");
-        let end = Simulator::legal_actions(&full)
+        let end = simulator()
+            .legal_actions(&full)
             .unwrap()
             .into_iter()
             .find(|action| action.action_type == "end_turn")
             .unwrap();
-        let full_after = Simulator::step(&full, &end).unwrap();
-        let reduced_after = Simulator::step(&reduced, &end).unwrap();
+        let full_after = simulator().step(&full, &end).unwrap();
+        let reduced_after = simulator().step(&reduced, &end).unwrap();
         assert_eq!(full_after.rng.streams["shuffle"].counter, 5);
         assert_eq!(reduced_after.rng.streams["shuffle"].counter, 4);
-        assert!(full_after.hand.iter().any(|card| card.instance_id == "c"));
+        assert!(
+            full_after
+                .hand
+                .iter()
+                .chain(&full_after.draw_pile)
+                .any(|card| card.instance_id == "c")
+        );
         assert!(
             !reduced_after
                 .hand
