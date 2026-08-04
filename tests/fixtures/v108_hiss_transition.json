@@ -1,0 +1,28 @@
+{
+  "source": {
+    "game_version": "v0.108.0",
+    "game_commit": "58694f64",
+    "assembly_sha256": "ed982ba3bd0f7e03bcefcc06a7a0bed8996b76b4b9d5854d6dda17a374510236",
+    "bridge_version": "0.2.0"
+  },
+  "prefix_actions": [
+    {"id": "end_turn", "type": "end_turn"},
+    {"id": "end_turn", "type": "end_turn"},
+    {"id": "play:10:enemy_0", "type": "card", "card_id": "CARD.BASH", "combat_card_index": "10", "target_combat_id": "1", "cost": 2},
+    {"id": "play:4:enemy_0", "type": "card", "card_id": "CARD.STRIKE_IRONCLAD", "combat_card_index": "4", "target_combat_id": "1", "cost": 1}
+  ],
+  "action": {"id": "end_turn", "type": "end_turn"},
+  "expected": {
+    "turn": 4,
+    "player_hp": 62,
+    "enemy_hp": 33,
+    "enemy_move": "BUTT_MOVE",
+    "enemy_powers": [
+      {"model_id": "POWER.VULNERABLE_POWER", "amount": 1},
+      {"model_id": "POWER.STRENGTH_POWER", "amount": 2}
+    ],
+    "hand_instance_ids": ["2", "3", "9", "5", "1"],
+    "before_game_checksum": 1170537336,
+    "after_game_checksum": 2363847187
+  }
+}

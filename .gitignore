@@ -12,3 +12,8 @@ obj/
 *.egg-info/
 .venv/
 venv/
+target/
+*.so
+.DS_Store
+data/upstream/*
+!data/upstream/.gitignore

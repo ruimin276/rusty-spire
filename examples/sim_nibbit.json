@@ -1,0 +1,82 @@
+{
+  "oracle": {"type": "simulator"},
+  "initial_state": {
+    "snapshot_schema": 2,
+    "provenance": {
+      "game_version": "v0.108.0",
+      "game_commit": "58694f64",
+      "assembly_sha256": "ed982ba3bd0f7e03bcefcc06a7a0bed8996b76b4b9d5854d6dda17a374510236",
+      "content_revision": "base",
+      "modded_gameplay": false
+    },
+    "rng": {
+      "algorithm": "xoshiro256_star_star_v1",
+      "run_seed": "SIM-FIXTURE",
+      "streams": {
+        "up_front": {"seed": 557799830, "counter": 230},
+        "shuffle": {"seed": 4100827550, "counter": 10},
+        "unknown_map_point": {"seed": 1394315519, "counter": 0},
+        "combat_card_generation": {"seed": 503005935, "counter": 0},
+        "combat_potion_generation": {"seed": 2641534206, "counter": 0},
+        "combat_card_selection": {"seed": 2164418739, "counter": 0},
+        "combat_energy_costs": {"seed": 276208937, "counter": 0},
+        "combat_targets": {"seed": 3318478110, "counter": 0},
+        "monster_ai": {"seed": 3496449486, "counter": 0},
+        "niche": {"seed": 2290013596, "counter": 1},
+        "combat_orbs": {"seed": 3040496004, "counter": 0},
+        "treasure_room_relics": {"seed": 4193349943, "counter": 0}
+      }
+    },
+    "combat": {"won": false, "lost": false, "turn": 1, "current_side": "Player", "ascension_level": 8},
+    "decision": {"kind": "player_action"},
+    "player": {
+      "combat_id": "0",
+      "model_id": "CHARACTER.IRONCLAD",
+      "hp": 80,
+      "max_hp": 80,
+      "block": 0,
+      "energy": 3,
+      "max_energy": 3,
+      "powers": [],
+      "relics": [{"model_id": "RELIC.BURNING_BLOOD"}],
+      "potions": []
+    },
+    "enemies": [
+      {
+        "combat_id": "1",
+        "model_id": "MONSTER.NIBBIT",
+        "hp": 44,
+        "max_hp": 44,
+        "block": 0,
+        "powers": [],
+        "ai": {
+          "current_move": "BUTT_MOVE",
+          "move_history": ["BUTT_MOVE"],
+          "is_front": false,
+          "is_alone": true,
+          "tough_enemies": true,
+          "deadly_enemies": false
+        }
+      }
+    ],
+    "hand": [
+      {"instance_id": "0", "model_id": "CARD.ASCENDERS_BANE", "upgrade_level": 0, "cost": -1, "cost_for_turn": -1, "ethereal": true},
+      {"instance_id": "1", "model_id": "CARD.DEFEND_IRONCLAD", "upgrade_level": 0, "cost": 1, "cost_for_turn": 1},
+      {"instance_id": "2", "model_id": "CARD.DEFEND_IRONCLAD", "upgrade_level": 0, "cost": 1, "cost_for_turn": 1},
+      {"instance_id": "3", "model_id": "CARD.STRIKE_IRONCLAD", "upgrade_level": 0, "cost": 1, "cost_for_turn": 1},
+      {"instance_id": "4", "model_id": "CARD.STRIKE_IRONCLAD", "upgrade_level": 0, "cost": 1, "cost_for_turn": 1}
+    ],
+    "draw_pile": [
+      {"instance_id": "5", "model_id": "CARD.STRIKE_IRONCLAD", "upgrade_level": 0, "cost": 1, "cost_for_turn": 1},
+      {"instance_id": "6", "model_id": "CARD.STRIKE_IRONCLAD", "upgrade_level": 0, "cost": 1, "cost_for_turn": 1},
+      {"instance_id": "7", "model_id": "CARD.DEFEND_IRONCLAD", "upgrade_level": 0, "cost": 1, "cost_for_turn": 1},
+      {"instance_id": "8", "model_id": "CARD.DEFEND_IRONCLAD", "upgrade_level": 0, "cost": 1, "cost_for_turn": 1},
+      {"instance_id": "9", "model_id": "CARD.STRIKE_IRONCLAD", "upgrade_level": 0, "cost": 1, "cost_for_turn": 1},
+      {"instance_id": "10", "model_id": "CARD.BASH", "upgrade_level": 0, "cost": 2, "cost_for_turn": 2}
+    ],
+    "discard_pile": [],
+    "exhaust_pile": [],
+    "play_pile": [],
+    "metrics": {"powers_played": 0}
+  }
+}

@@ -5,6 +5,7 @@ import json
 import sys
 
 from .compare import compare_scenarios
+from .native import compare_simulators, solve_simulator, validate_simulator
 from .oracle import HttpGameOracle, OracleError, oracle_from_scenario
 from .schema import ScenarioError, load_json, validate_scenario, write_json
 from .solver import SolveLimits, action_summary, solve_scenario
@@ -32,6 +33,14 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--timeout-seconds", type=float, default=30.0)
     export.add_argument("--output", required=True, help="Write scenario JSON to this file.")
 
+    capture = subparsers.add_parser(
+        "capture",
+        help="Capture a self-contained simulator snapshot at a stable player decision.",
+    )
+    capture.add_argument("--base-url", default="http://127.0.0.1:17351")
+    capture.add_argument("--timeout-seconds", type=float, default=30.0)
+    capture.add_argument("--output", required=True, help="Write simulator scenario JSON to this file.")
+
     health = subparsers.add_parser("oracle-health", help="Check HTTP oracle bridge health.")
     health.add_argument("--base-url", default="http://127.0.0.1:17351")
     health.add_argument("--timeout-seconds", type=float, default=5.0)
@@ -48,6 +57,33 @@ def build_parser() -> argparse.ArgumentParser:
         "--allow-live-mutation",
         action="store_true",
         help="Required acknowledgement that this mutates the active game combat.",
+    )
+
+    trace_step = subparsers.add_parser(
+        "trace-step",
+        help="Record one live game transition for simulator differential testing.",
+    )
+    trace_step.add_argument("--scenario", required=True, help="Captured simulator scenario JSON file.")
+    trace_step.add_argument("--action-id", required=True, help="Legal action id to execute.")
+    trace_step.add_argument("--output", required=True, help="Write transition trace JSON to this file.")
+    trace_step.add_argument("--timeout-seconds", type=float, default=30.0)
+    trace_step.add_argument(
+        "--allow-live-mutation",
+        action="store_true",
+        help="Required acknowledgement that this mutates the active game combat.",
+    )
+
+    debug_nibbit = subparsers.add_parser(
+        "debug-start-nibbit",
+        help="Replace the active run with the deterministic bridge parity fixture.",
+    )
+    debug_nibbit.add_argument("--base-url", default="http://127.0.0.1:17351")
+    debug_nibbit.add_argument("--timeout-seconds", type=float, default=30.0)
+    debug_nibbit.add_argument("--output", required=True, help="Write the captured simulator scenario.")
+    debug_nibbit.add_argument(
+        "--allow-live-mutation",
+        action="store_true",
+        help="Required acknowledgement that this replaces the active run.",
     )
 
     checkpoint = subparsers.add_parser(
@@ -88,8 +124,14 @@ def main(argv: list[str] | None = None) -> int:
             payload = _compare_command(args)
         elif args.command == "export":
             payload = _export_command(args)
+        elif args.command == "capture":
+            payload = _capture_command(args)
         elif args.command == "live-step":
             payload = _live_step_command(args)
+        elif args.command == "trace-step":
+            payload = _trace_step_command(args)
+        elif args.command == "debug-start-nibbit":
+            payload = _debug_start_nibbit_command(args)
         elif args.command == "live-checkpoint":
             payload = _live_checkpoint_command(args)
         elif args.command == "live-restore-checkpoint":
@@ -109,6 +151,9 @@ def main(argv: list[str] | None = None) -> int:
 def _solve_command(args: argparse.Namespace) -> dict:
     scenario = load_json(args.scenario)
     validate_scenario(scenario)
+    if _oracle_type(scenario) == "simulator":
+        validate_simulator(scenario)
+        return solve_simulator(scenario, _limits_from_args(args))
     oracle = oracle_from_scenario(scenario)
     _require_branchable_step(oracle)
     result = solve_scenario(scenario, oracle, _limits_from_args(args))
@@ -122,6 +167,14 @@ def _compare_command(args: argparse.Namespace) -> dict:
     candidate = load_json(args.candidate)
     validate_scenario(baseline)
     validate_scenario(candidate)
+    baseline_type = _oracle_type(baseline)
+    candidate_type = _oracle_type(candidate)
+    if baseline_type == "simulator" or candidate_type == "simulator":
+        if baseline_type != "simulator" or candidate_type != "simulator":
+            raise OracleError("Simulator comparison requires both scenarios to use oracle.type=simulator")
+        validate_simulator(baseline)
+        validate_simulator(candidate)
+        return compare_simulators(baseline, candidate, _limits_from_args(args))
     baseline_oracle = oracle_from_scenario(baseline)
     candidate_oracle = oracle_from_scenario(candidate)
     _require_branchable_step(baseline_oracle)
@@ -151,6 +204,15 @@ def _export_command(args: argparse.Namespace) -> dict:
     }
 
 
+def _capture_command(args: argparse.Namespace) -> dict:
+    oracle = HttpGameOracle(args.base_url, timeout_seconds=args.timeout_seconds)
+    return {
+        "oracle": {"type": "simulator"},
+        "capture": {"base_url": args.base_url},
+        "initial_state": oracle.export_sim_snapshot(),
+    }
+
+
 def _live_step_command(args: argparse.Namespace) -> dict:
     if not args.allow_live_mutation:
         raise OracleError("live-step requires --allow-live-mutation")
@@ -170,6 +232,48 @@ def _live_step_command(args: argparse.Namespace) -> dict:
         timeout_milliseconds=int(args.timeout_seconds * 1000),
     )
     return {"action": action, "state": state}
+
+
+def _trace_step_command(args: argparse.Namespace) -> dict:
+    if not args.allow_live_mutation:
+        raise OracleError("trace-step requires --allow-live-mutation")
+    scenario = load_json(args.scenario)
+    validate_scenario(scenario)
+    initial_state = scenario["initial_state"]
+    if not isinstance(initial_state, dict):
+        raise OracleError("trace-step requires an object initial_state")
+    provenance = initial_state.get("provenance", {})
+    base_url = "http://127.0.0.1:17351"
+    if isinstance(scenario.get("capture"), dict):
+        base_url = str(scenario["capture"].get("base_url", base_url))
+    oracle = HttpGameOracle(base_url, timeout_seconds=args.timeout_seconds)
+    actions = oracle.legal_actions(initial_state)
+    action = next((item for item in actions if item.get("id") == args.action_id), None)
+    if action is None:
+        available = ", ".join(str(item.get("id")) for item in actions)
+        raise OracleError(f"Unknown trace action id {args.action_id!r}. Available: {available}")
+    trace = oracle.live_trace_step(
+        action,
+        allow_live_mutation=True,
+        timeout_milliseconds=int(args.timeout_seconds * 1000),
+    )
+    trace["captured_provenance"] = provenance
+    return trace
+
+
+def _debug_start_nibbit_command(args: argparse.Namespace) -> dict:
+    if not args.allow_live_mutation:
+        raise OracleError("debug-start-nibbit requires --allow-live-mutation")
+    oracle = HttpGameOracle(args.base_url, timeout_seconds=args.timeout_seconds)
+    snapshot = oracle.debug_start_nibbit(
+        allow_live_mutation=True,
+        timeout_milliseconds=int(args.timeout_seconds * 1000),
+    )
+    return {
+        "oracle": {"type": "simulator"},
+        "capture": {"base_url": args.base_url},
+        "initial_state": snapshot,
+    }
 
 
 def _live_checkpoint_command(args: argparse.Namespace) -> dict:
@@ -219,6 +323,13 @@ def _limits_from_args(args: argparse.Namespace) -> SolveLimits:
         max_turns=args.max_turns,
         timeout_seconds=args.timeout_seconds,
     )
+
+
+def _oracle_type(scenario: dict) -> str:
+    config = scenario.get("oracle", {})
+    if not isinstance(config, dict):
+        return ""
+    return str(config.get("type", "http")).lower()
 
 
 if __name__ == "__main__":

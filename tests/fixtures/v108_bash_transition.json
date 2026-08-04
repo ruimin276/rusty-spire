@@ -1,0 +1,26 @@
+{
+  "source": {
+    "game_version": "v0.108.0",
+    "game_commit": "58694f64",
+    "assembly_sha256": "ed982ba3bd0f7e03bcefcc06a7a0bed8996b76b4b9d5854d6dda17a374510236",
+    "bridge_version": "0.2.0"
+  },
+  "action": {
+    "id": "play:10:enemy_0",
+    "type": "card",
+    "card_id": "CARD.BASH",
+    "combat_card_index": "10",
+    "target_combat_id": "1",
+    "cost": 2
+  },
+  "expected": {
+    "player_energy": 1,
+    "enemy_hp": 42,
+    "enemy_block": 0,
+    "enemy_powers": [{"model_id": "POWER.VULNERABLE_POWER", "amount": 2}],
+    "hand_instance_ids": ["4", "8", "7", "6"],
+    "discard_instance_ids": ["10"],
+    "before_game_checksum": 703990647,
+    "after_game_checksum": 2200962958
+  }
+}

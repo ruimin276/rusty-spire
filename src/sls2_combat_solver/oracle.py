@@ -80,6 +80,32 @@ class HttpGameOracle:
             raise OracleError("Oracle /export_state response must include state object")
         return state
 
+    def export_sim_snapshot(self) -> JsonDict:
+        response = self._post("/export_sim_snapshot", {})
+        if not isinstance(response, dict):
+            raise OracleError("Oracle /export_sim_snapshot response must be an object")
+        return response
+
+    def rng_vector(self, seed: int, count: int = 8, max_exclusive: int = 2**31 - 1) -> JsonDict:
+        return self._post(
+            "/rng_vector",
+            {"seed": seed, "count": count, "max_exclusive": max_exclusive},
+        )
+
+    def debug_start_nibbit(
+        self,
+        *,
+        allow_live_mutation: bool = False,
+        timeout_milliseconds: int = 30_000,
+    ) -> JsonDict:
+        return self._post(
+            "/debug_start_nibbit",
+            {
+                "allow_live_mutation": allow_live_mutation,
+                "timeout_milliseconds": timeout_milliseconds,
+            },
+        )
+
     def health(self) -> JsonDict:
         return self._post("/health", {})
 
@@ -116,6 +142,25 @@ class HttpGameOracle:
         if not isinstance(next_state, dict):
             raise OracleError("Oracle /live_step response must include state object")
         return next_state
+
+    def live_trace_step(
+        self,
+        action: JsonDict,
+        *,
+        allow_live_mutation: bool = False,
+        timeout_milliseconds: int = 30_000,
+    ) -> JsonDict:
+        response = self._post(
+            "/live_trace_step",
+            {
+                "action": action,
+                "allow_live_mutation": allow_live_mutation,
+                "timeout_milliseconds": timeout_milliseconds,
+            },
+        )
+        if not isinstance(response, dict):
+            raise OracleError("Oracle /live_trace_step response must be an object")
+        return response
 
     def live_checkpoint(self, *, allow_live_mutation: bool = False) -> JsonDict:
         response = self._post(
