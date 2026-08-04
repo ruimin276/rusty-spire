@@ -1,0 +1,423 @@
+{
+  "evidence": "offline_source_backed_not_live_differential",
+  "assumptions": {
+    "act": "Overgrowth easy pool",
+    "ascension": 0,
+    "enemy_hp": "fixed midpoint of the published A0 range",
+    "rng": "shuffle seeds are supplied directly to the verified xoshiro adapter",
+    "live_game_available": false
+  },
+  "sources": [
+    "https://slaythespire.wiki.gg/wiki/Slay_the_Spire_2:Cards",
+    "https://slaythespire.wiki.gg/wiki/Slay_the_Spire_2:Neutralize",
+    "https://slaythespire.wiki.gg/wiki/Slay_the_Spire_2:Fuzzy_Wurm_Crawler",
+    "https://slaythespire.wiki.gg/wiki/Slay_the_Spire_2:Shrinker_Beetle",
+    "https://sts2.wiki/encounters/"
+  ],
+  "seeds": [
+    1,
+    2,
+    4,
+    7,
+    17,
+    42
+  ],
+  "cases": [
+    {
+      "enemy": "nibbit",
+      "shuffle_seed": 1,
+      "opening_hand": [
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.SURVIVOR",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 4,
+      "actions": 20,
+      "explored_states": 46,
+      "runtime_seconds": 0.0010985,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "nibbit",
+      "shuffle_seed": 2,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 1,
+      "final_hp": 69,
+      "enemy_turns": 6,
+      "actions": 26,
+      "explored_states": 3331,
+      "runtime_seconds": 0.060996,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "nibbit",
+      "shuffle_seed": 4,
+      "opening_hand": [
+        "CARD.DEFEND_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.SURVIVOR",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 3,
+      "actions": 16,
+      "explored_states": 33,
+      "runtime_seconds": 0.000693875,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "nibbit",
+      "shuffle_seed": 7,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 6,
+      "actions": 27,
+      "explored_states": 82,
+      "runtime_seconds": 0.001670125,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "nibbit",
+      "shuffle_seed": 17,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 4,
+      "final_hp": 66,
+      "enemy_turns": 5,
+      "actions": 23,
+      "explored_states": 222,
+      "runtime_seconds": 0.003988666,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "nibbit",
+      "shuffle_seed": 42,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.SURVIVOR",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 5,
+      "actions": 24,
+      "explored_states": 88,
+      "runtime_seconds": 0.00169975,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "fuzzy_wurm_crawler",
+      "shuffle_seed": 1,
+      "opening_hand": [
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.SURVIVOR",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 5,
+      "actions": 23,
+      "explored_states": 49,
+      "runtime_seconds": 0.001069791,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "fuzzy_wurm_crawler",
+      "shuffle_seed": 2,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 5,
+      "actions": 22,
+      "explored_states": 45,
+      "runtime_seconds": 0.000953375,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "fuzzy_wurm_crawler",
+      "shuffle_seed": 4,
+      "opening_hand": [
+        "CARD.DEFEND_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.SURVIVOR",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 1,
+      "final_hp": 69,
+      "enemy_turns": 3,
+      "actions": 16,
+      "explored_states": 1511,
+      "runtime_seconds": 0.029904875,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "fuzzy_wurm_crawler",
+      "shuffle_seed": 7,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 5,
+      "actions": 22,
+      "explored_states": 45,
+      "runtime_seconds": 0.001001709,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "fuzzy_wurm_crawler",
+      "shuffle_seed": 17,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 8,
+      "final_hp": 62,
+      "enemy_turns": 5,
+      "actions": 20,
+      "explored_states": 808,
+      "runtime_seconds": 0.014603917,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "fuzzy_wurm_crawler",
+      "shuffle_seed": 42,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.SURVIVOR",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 5,
+      "actions": 23,
+      "explored_states": 47,
+      "runtime_seconds": 0.00104125,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "shrinker_beetle",
+      "shuffle_seed": 1,
+      "opening_hand": [
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.SURVIVOR",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 4,
+      "actions": 19,
+      "explored_states": 30,
+      "runtime_seconds": 0.000729083,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "shrinker_beetle",
+      "shuffle_seed": 2,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 3,
+      "actions": 16,
+      "explored_states": 21,
+      "runtime_seconds": 0.000507959,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "shrinker_beetle",
+      "shuffle_seed": 4,
+      "opening_hand": [
+        "CARD.DEFEND_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.SURVIVOR",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 5,
+      "actions": 24,
+      "explored_states": 48,
+      "runtime_seconds": 0.001089167,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "shrinker_beetle",
+      "shuffle_seed": 7,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 4,
+      "actions": 19,
+      "explored_states": 37,
+      "runtime_seconds": 0.000783625,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "shrinker_beetle",
+      "shuffle_seed": 17,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 9,
+      "final_hp": 61,
+      "enemy_turns": 3,
+      "actions": 14,
+      "explored_states": 897,
+      "runtime_seconds": 0.016104458,
+      "termination_reason": "optimal_win"
+    },
+    {
+      "enemy": "shrinker_beetle",
+      "shuffle_seed": 42,
+      "opening_hand": [
+        "CARD.STRIKE_SILENT",
+        "CARD.STRIKE_SILENT",
+        "CARD.SURVIVOR",
+        "CARD.STRIKE_SILENT",
+        "CARD.DEFEND_SILENT",
+        "CARD.NEUTRALIZE",
+        "CARD.DEFEND_SILENT"
+      ],
+      "won": true,
+      "complete": true,
+      "hp_loss": 0,
+      "final_hp": 70,
+      "enemy_turns": 4,
+      "actions": 20,
+      "explored_states": 34,
+      "runtime_seconds": 0.000787792,
+      "termination_reason": "optimal_win"
+    }
+  ]
+}

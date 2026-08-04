@@ -105,9 +105,13 @@ PYTHONPATH=src python3 -m sls2_combat_solver.cli export --output scenario.json
 
 - `POST /health`
 - `POST /export_state`
+- `POST /export_sim_snapshot`
+- `POST /rng_vector`
+- `POST /debug_start_nibbit`
 - `POST /legal_actions`
 - `POST /state_hash`
 - `POST /live_step`
+- `POST /live_trace_step`
 - `POST /live_checkpoint`
 - `POST /live_restore_checkpoint`
 
@@ -117,6 +121,28 @@ combat state for checksum/rejoin diagnostics, but the inspected game code does
 not expose a matching apply/restore method. The next bridge task is a custom
 detached combat hydrator, or a separately guarded live-step endpoint for manual
 experiments only.
+
+The standalone Rust simulator is now the branchable search path. The bridge's
+`/export_sim_snapshot` endpoint emits its versioned input state, while the
+guarded `/live_trace_step` endpoint records exact game transitions for parity
+testing. HTTP `/step` remains unsupported and is no longer required by native
+simulator scenarios.
+
+New simulator snapshots include `combat.ascension_level`. The Rust simulator
+checks it against the exported Tough/Deadly enemy tier flags before accepting
+the state.
+
+Bridge 0.2.1 fingerprints the game's RNG implementation with a fixed seed and
+four-output probe. It emits a supported algorithm name only when that vector
+matches a verified adapter. A changed implementation is labeled
+`unverified_rng_<fingerprint>`, which the Rust simulator rejects until a new
+adapter and golden vector are added. The class name alone is not treated as
+proof that RNG behavior stayed compatible across patches.
+
+`/debug_start_nibbit` is a development-only, explicitly guarded endpoint. It
+uses STS2's own test-run APIs to replace the active run with a deterministic
+Ironclad/Nibbit combat for golden trace capture. Start it only from the main
+menu and restart STS2 when the capture session is finished.
 
 ## Live Mutation Workflow
 

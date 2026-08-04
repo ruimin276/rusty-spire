@@ -1,0 +1,26 @@
+{
+  "evidence": "offline_source_backed_not_live_differential",
+  "shuffle_seeds": "1..100",
+  "max_states_per_case": 100000,
+  "timeout_seconds_per_case": 5,
+  "results": {
+    "nibbit": {
+      "complete_wins": 100,
+      "hp_loss_distribution": {"0": 67, "1": 16, "2": 6, "3": 1, "4": 7, "5": 1, "6": 1, "9": 1},
+      "explored_states_min_median_max": [20, 75, 23285],
+      "maximum_runtime_seconds": 0.450313
+    },
+    "fuzzy_wurm_crawler": {
+      "complete_wins": 100,
+      "hp_loss_distribution": {"0": 68, "1": 18, "3": 9, "6": 4, "8": 1},
+      "explored_states_min_median_max": [17, 49, 13835],
+      "maximum_runtime_seconds": 0.268957
+    },
+    "shrinker_beetle": {
+      "complete_wins": 100,
+      "hp_loss_distribution": {"0": 84, "2": 4, "3": 4, "4": 2, "5": 3, "7": 1, "8": 1, "9": 1},
+      "explored_states_min_median_max": [12, 33, 4072],
+      "maximum_runtime_seconds": 0.078843
+    }
+  }
+}

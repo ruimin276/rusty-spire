@@ -4,16 +4,23 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Context;
 using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.Entities.Multiplayer;
 using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.GameActions.Multiplayer;
 using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Models.Characters;
+using MegaCrit.Sts2.Core.Models.Encounters;
+using MegaCrit.Sts2.Core.Modding;
 using MegaCrit.Sts2.Core.Multiplayer;
 using MegaCrit.Sts2.Core.Nodes;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
 using MegaCrit.Sts2.Core.Saves;
+using MegaCrit.Sts2.Core.TestSupport;
+using MegaCrit.Sts2.Core.Unlocks;
 
 namespace Sls2CombatOracle.Bridge;
 
@@ -36,6 +43,81 @@ internal sealed class ReflectionCombatBridge : ICombatBridge
         var manager = CurrentCombatManager();
         var state = CurrentCombatState(manager);
         return ExportStateObject(state);
+    }
+
+    public object ExportSimulatorSnapshot()
+    {
+        EnsureQuiescentDecisionBoundary();
+        return ExportSimulatorSnapshotObject();
+    }
+
+    public object RngVector(uint seed, int count, int maxExclusive)
+    {
+        var safeCount = Math.Clamp(count, 1, 1_000);
+        if (maxExclusive < 1)
+        {
+            throw new OracleHttpException(400, "max_exclusive must be positive");
+        }
+        var rng = new MegaCrit.Sts2.Core.Random.Rng(seed);
+        var values = new List<int>(safeCount);
+        for (var index = 0; index < safeCount; index++)
+        {
+            values.Add(rng.NextInt(maxExclusive));
+        }
+        return new Dictionary<string, object?>
+        {
+            ["algorithm"] = RngAlgorithm(),
+            ["seed"] = seed,
+            ["max_exclusive"] = maxExclusive,
+            ["values"] = values,
+            ["counter"] = rng.Counter
+        };
+    }
+
+    public object StartDebugNibbit(bool allowLiveMutation, int timeoutMilliseconds)
+    {
+        if (!allowLiveMutation)
+        {
+            throw new InvalidOperationException(
+                "/debug_start_nibbit replaces the active run. Set allow_live_mutation=true to acknowledge this."
+            );
+        }
+        if (CurrentRunState() != null)
+        {
+            throw new OracleHttpException(
+                409,
+                "A run is already active. Restart STS2 at the main menu before creating the debug fixture."
+            );
+        }
+
+        TestMode.IsOn = true;
+        LocalContext.NetId = 1uL;
+        var player = Player.CreateForNewRun<Ironclad>(UnlockState.all, 1uL);
+        var runState = RunState.CreateForTest(
+            players: new List<Player> { player },
+            ascensionLevel: 8,
+            seed: "SIM-FIXTURE"
+        );
+        RunManager.Instance.SetUpTest(
+            runState,
+            new NetSingleplayerGameService(),
+            disableCombatStateSync: true,
+            shouldSave: false
+        );
+
+        var encounter = ModelDb.Encounter<NibbitsWeak>().ToMutable();
+        encounter.GenerateMonstersWithSlots(runState);
+        var combat = new CombatState(encounter: encounter, runState: runState);
+        combat.AddPlayer(player);
+        foreach (var (monster, slot) in encounter.MonstersWithSlots)
+        {
+            var enemy = combat.CreateCreature(monster, CombatSide.Enemy, slot);
+            combat.AddCreature(enemy);
+        }
+        CombatManager.Instance.SetUpCombat(combat);
+        CombatManager.Instance.StartCombatInternal().GetAwaiter().GetResult();
+        WaitForDecisionBoundary(timeoutMilliseconds);
+        return ExportSimulatorSnapshotObject();
     }
 
     public IReadOnlyList<object> LegalActions(JsonElement state)
@@ -177,6 +259,42 @@ internal sealed class ReflectionCombatBridge : ICombatBridge
         return ExportStateObject(CurrentCombatState(CurrentCombatManager()));
     }
 
+    public object LiveTraceStep(JsonElement action, bool allowLiveMutation, int timeoutMilliseconds)
+    {
+        if (!allowLiveMutation)
+        {
+            throw new InvalidOperationException(
+                "/live_trace_step mutates the active combat. Set allow_live_mutation=true to acknowledge this."
+            );
+        }
+        EnsureQuiescentDecisionBoundary();
+        var before = ExportSimulatorSnapshotObject();
+        var beforeChecksum = CurrentGameChecksum();
+        var beforeRng = ExportRngStreams();
+
+        var state = CurrentCombatState(CurrentCombatManager()) as CombatState
+            ?? throw new InvalidOperationException("Active combat state was not a CombatState");
+        var player = state.Players.FirstOrDefault()
+            ?? throw new InvalidOperationException("No player is available in the active combat");
+        var gameAction = CreateLiveAction(state, player, action);
+        BridgeLog.Info($"live_trace_step enqueueing {gameAction}");
+        RunManager.Instance.ActionQueueSynchronizer.RequestEnqueue(gameAction);
+        WaitForQuiescence(gameAction, timeoutMilliseconds);
+
+        var after = ExportSimulatorSnapshotObject();
+        var afterRng = ExportRngStreams();
+        return new Dictionary<string, object?>
+        {
+            ["before"] = before,
+            ["action"] = action.Clone(),
+            ["after"] = after,
+            ["legal_actions"] = LiveLegalActions(),
+            ["rng_deltas"] = RngDeltas(beforeRng, afterRng),
+            ["before_game_checksum"] = beforeChecksum,
+            ["after_game_checksum"] = CurrentGameChecksum()
+        };
+    }
+
     public object SaveLiveCheckpoint(bool allowLiveMutation)
     {
         if (!allowLiveMutation)
@@ -260,7 +378,7 @@ internal sealed class ReflectionCombatBridge : ICombatBridge
     {
         RunManager.Instance.CleanUp(graceful: false);
         var runState = RunState.FromSerializable(checkpoint);
-        RunManager.Instance.SetUpSavedSinglePlayer(runState, checkpoint);
+        await RunManager.Instance.SetUpSavedSingleplayer(runState, checkpoint);
         if (NGame.Instance == null)
         {
             throw new InvalidOperationException("NGame.Instance is not available");
@@ -331,6 +449,84 @@ internal sealed class ReflectionCombatBridge : ICombatBridge
         }
     }
 
+    private static void WaitForQuiescence(GameAction action, int timeoutMilliseconds)
+    {
+        WaitForLiveAction(action, timeoutMilliseconds);
+        var timeout = Math.Clamp(timeoutMilliseconds, 1_000, 120_000);
+        var deadline = DateTimeOffset.UtcNow.AddMilliseconds(timeout);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (RunManager.Instance.ActionQueueSet.IsEmpty
+                && (RunManager.Instance.ActionQueueSynchronizer.CombatState.ToString() == "PlayPhase"
+                    || TryIsTerminalCombat()))
+            {
+                return;
+            }
+            Thread.Sleep(10);
+        }
+        throw new TimeoutException(
+            $"Timed out waiting for the game to reach a quiescent player decision after {timeout}ms"
+        );
+    }
+
+    private static void WaitForDecisionBoundary(int timeoutMilliseconds)
+    {
+        var timeout = Math.Clamp(timeoutMilliseconds, 1_000, 120_000);
+        var deadline = DateTimeOffset.UtcNow.AddMilliseconds(timeout);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (RunManager.Instance.ActionQueueSet != null
+                && RunManager.Instance.ActionQueueSynchronizer != null
+                && RunManager.Instance.ActionQueueSet.IsEmpty
+                && RunManager.Instance.ActionQueueSynchronizer.CombatState.ToString() == "PlayPhase")
+            {
+                return;
+            }
+            Thread.Sleep(10);
+        }
+        throw new TimeoutException($"Timed out creating the debug Nibbit combat after {timeout}ms");
+    }
+
+    private static bool TryIsTerminalCombat()
+    {
+        try
+        {
+            var managerType = typeof(CombatManager);
+            var manager = managerType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)
+                ?.GetValue(null);
+            if (manager == null)
+            {
+                return false;
+            }
+            var state = CurrentCombatState(manager);
+            var enemies = GetEnumerableProperty(state, "Enemies").Where(item => item != null).ToList();
+            var player = GetEnumerableProperty(state, "Players").FirstOrDefault();
+            return enemies.Count > 0 && enemies.All(IsCreatureDead)
+                || player != null && IsCreatureDead(GetProperty(player, "Creature") ?? player);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void EnsureQuiescentDecisionBoundary()
+    {
+        if (RunManager.Instance.ActionQueueSet == null
+            || RunManager.Instance.ActionQueueSynchronizer == null)
+        {
+            throw new OracleHttpException(409, "No active combat is available");
+        }
+        if (!RunManager.Instance.ActionQueueSet.IsEmpty
+            || RunManager.Instance.ActionQueueSynchronizer.CombatState.ToString() != "PlayPhase")
+        {
+            throw new OracleHttpException(
+                409,
+                "Simulator snapshots are available only at a quiescent player decision boundary"
+            );
+        }
+    }
+
     private object CurrentCombatManager()
     {
         if (_combatManagerType == null)
@@ -378,7 +574,7 @@ internal sealed class ReflectionCombatBridge : ICombatBridge
             ["version"] = 1,
             ["combat"] = new Dictionary<string, object?>
             {
-                ["won"] = enemies.Count > 0 && enemies.All(IsCreatureDead),
+                ["won"] = enemies.All(IsCreatureDead),
                 ["lost"] = player != null && IsCreatureDead(GetProperty(player, "Creature") ?? player),
                 ["turn"] = round,
                 ["current_side"] = currentSide
@@ -403,6 +599,288 @@ internal sealed class ReflectionCombatBridge : ICombatBridge
         }
 
         return export;
+    }
+
+    private Dictionary<string, object?> ExportSimulatorSnapshotObject()
+    {
+        var state = CurrentCombatState(CurrentCombatManager());
+        var runState = CurrentRunState()
+            ?? throw new InvalidOperationException("No active run state is available");
+        var players = GetEnumerableProperty(state, "Players").ToList();
+        var player = players.FirstOrDefault()
+            ?? throw new InvalidOperationException("No player is available in the active combat");
+        var playerCombat = GetProperty(player, "PlayerCombatState")
+            ?? throw new InvalidOperationException("No player combat state is available");
+        var creature = GetProperty(player, "Creature") ?? player;
+        var enemies = GetEnumerableProperty(state, "Enemies").Where(item => item != null).ToList();
+        var provenance = ReadGameProvenance();
+        var won = enemies.All(IsCreatureDead);
+        var lost = IsCreatureDead(creature);
+
+        return new Dictionary<string, object?>
+        {
+            ["snapshot_schema"] = 2,
+            ["provenance"] = provenance,
+            ["rng"] = new Dictionary<string, object?>
+            {
+                ["algorithm"] = RngAlgorithm(),
+                ["run_seed"] = runState.Rng.StringSeed,
+                ["streams"] = ExportRngStreams()
+            },
+            ["combat"] = new Dictionary<string, object?>
+            {
+                ["won"] = won,
+                ["lost"] = lost,
+                ["turn"] = GetProperty(state, "RoundNumber"),
+                ["current_side"] = GetProperty(state, "CurrentSide")?.ToString(),
+                ["ascension_level"] = runState.AscensionLevel
+            },
+            ["decision"] = new Dictionary<string, object?>
+            {
+                ["kind"] = won || lost ? "terminal" : "player_action"
+            },
+            ["player"] = new Dictionary<string, object?>
+            {
+                ["combat_id"] = GetAnyProperty(creature, "CombatId")?.ToString() ?? "0",
+                ["model_id"] = GetAnyProperty(creature, "ModelId", "Id")?.ToString(),
+                ["hp"] = GetAnyProperty(creature, "CurrentHp", "Hp"),
+                ["max_hp"] = GetAnyProperty(creature, "MaxHp"),
+                ["block"] = GetAnyProperty(creature, "Block"),
+                ["energy"] = GetProperty(playerCombat, "Energy"),
+                ["max_energy"] = GetProperty(player, "MaxEnergy"),
+                ["powers"] = ExportSnapshotModels(GetAnyProperty(creature, "Powers"), includeAmount: true),
+                ["relics"] = ExportSnapshotModels(GetProperty(player, "Relics"), includeAmount: false),
+                ["potions"] = ExportSnapshotModels(GetProperty(player, "Potions"), includeAmount: false)
+            },
+            ["enemies"] = enemies.Select(enemy => ExportSnapshotEnemy(enemy!, runState.AscensionLevel)).ToList(),
+            ["hand"] = ExportSnapshotCards(GetProperty(playerCombat, "Hand")),
+            ["draw_pile"] = ExportSnapshotCards(GetProperty(playerCombat, "DrawPile")),
+            ["discard_pile"] = ExportSnapshotCards(GetProperty(playerCombat, "DiscardPile")),
+            ["exhaust_pile"] = ExportSnapshotCards(GetProperty(playerCombat, "ExhaustPile")),
+            ["play_pile"] = ExportSnapshotCards(GetProperty(playerCombat, "PlayPile")),
+            ["metrics"] = new Dictionary<string, object?> { ["powers_played"] = 0 }
+        };
+    }
+
+    private static string RngAlgorithm()
+    {
+        var implementation = typeof(MegaCrit.Sts2.Core.Random.Rng)
+            .GetField("_random", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.FieldType
+            .Name ?? "unknown";
+        var probe = new MegaCrit.Sts2.Core.Random.Rng(1u);
+        var vector = Enumerable.Range(0, 4)
+            .Select(_ => probe.NextInt(1_000))
+            .ToArray();
+        if (implementation == "MegaRandom" && vector.SequenceEqual(new[] { 702, 520, 574, 391 }))
+        {
+            return "xoshiro256_star_star_v1";
+        }
+        if (implementation == "Random" && vector.SequenceEqual(new[] { 248, 110, 467, 771 }))
+        {
+            return "dotnet_system_random_v1";
+        }
+
+        var fingerprintInput = $"{implementation}:{string.Join(",", vector)}";
+        var fingerprint = Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(fingerprintInput))
+        ).ToLowerInvariant()[..12];
+        return $"unverified_rng_{fingerprint}";
+    }
+
+    private Dictionary<string, object?> ReadGameProvenance()
+    {
+        var assemblyPath = _gameAssembly.Location;
+        var assemblyHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(assemblyPath))).ToLowerInvariant();
+        var releasePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(assemblyPath)!, "..", "release_info.json"));
+        string version = "unknown";
+        string commit = "unknown";
+        if (File.Exists(releasePath))
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(releasePath));
+            if (document.RootElement.TryGetProperty("version", out var rawVersion))
+            {
+                version = rawVersion.GetString() ?? version;
+            }
+            if (document.RootElement.TryGetProperty("commit", out var rawCommit))
+            {
+                commit = rawCommit.GetString() ?? commit;
+            }
+        }
+        return new Dictionary<string, object?>
+        {
+            ["game_version"] = version,
+            ["game_commit"] = commit,
+            ["assembly_sha256"] = assemblyHash,
+            ["content_revision"] = "base",
+            ["modded_gameplay"] = HasExternalGameplayMods(),
+            ["bridge_version"] = ModEntry.BridgeVersion
+        };
+    }
+
+    private static bool HasExternalGameplayMods()
+    {
+        foreach (var mod in ModManager.GetLoadedMods())
+        {
+            var manifest = GetProperty(mod, "manifest") ?? GetProperty(mod, "Manifest");
+            var id = manifest == null ? null : GetAnyProperty(manifest, "id", "Id")?.ToString();
+            if (!string.IsNullOrEmpty(id) && id != "sls2_combat_oracle")
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Dictionary<string, object?> ExportRngStreams()
+    {
+        var runState = CurrentRunState()
+            ?? throw new InvalidOperationException("No active run state is available");
+        var rngs = runState.Rng.GetType()
+            .GetField("_rngs", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(runState.Rng);
+        var result = new Dictionary<string, object?>();
+        foreach (var entry in EnumerateObject(rngs))
+        {
+            if (entry == null)
+            {
+                continue;
+            }
+            var key = GetProperty(entry, "Key")?.ToString();
+            var value = GetProperty(entry, "Value");
+            if (key == null || value == null)
+            {
+                continue;
+            }
+            result[SnakeCase(key)] = new Dictionary<string, object?>
+            {
+                ["seed"] = GetProperty(value, "Seed"),
+                ["counter"] = GetProperty(value, "Counter")
+            };
+        }
+        return result;
+    }
+
+    private Dictionary<string, object?> ExportSnapshotEnemy(object enemy, int ascensionLevel)
+    {
+        var monster = GetProperty(enemy, "Monster");
+        var machine = monster == null ? null : GetProperty(monster, "MoveStateMachine");
+        var nextMove = monster == null ? null : GetProperty(monster, "NextMove");
+        var currentMove = nextMove == null ? null : GetProperty(nextMove, "Id")?.ToString();
+        List<string?> history = machine == null
+            ? new List<string?>()
+            : GetEnumerableProperty(machine, "StateLog")
+                .Where(item => item != null)
+                .Select(item => GetProperty(item!, "Id")?.ToString())
+                .Where(item => item != null)
+                .ToList();
+        return new Dictionary<string, object?>
+        {
+            ["combat_id"] = GetAnyProperty(enemy, "CombatId")?.ToString(),
+            ["model_id"] = GetAnyProperty(enemy, "ModelId", "Id")?.ToString(),
+            ["hp"] = GetAnyProperty(enemy, "CurrentHp", "Hp"),
+            ["max_hp"] = GetAnyProperty(enemy, "MaxHp"),
+            ["block"] = GetAnyProperty(enemy, "Block"),
+            ["powers"] = ExportSnapshotModels(GetAnyProperty(enemy, "Powers"), includeAmount: true),
+            ["ai"] = new Dictionary<string, object?>
+            {
+                ["current_move"] = currentMove,
+                ["move_history"] = history,
+                ["is_front"] = monster == null ? false : GetProperty(monster, "IsFront") ?? false,
+                ["is_alone"] = monster == null ? false : GetProperty(monster, "IsAlone") ?? false,
+                ["tough_enemies"] = ascensionLevel >= 8,
+                ["deadly_enemies"] = ascensionLevel >= 9
+            }
+        };
+    }
+
+    private List<object?> ExportSnapshotCards(object? pile)
+    {
+        return EnumerateObject(pile).Select(card =>
+        {
+            if (card == null)
+            {
+                return null;
+            }
+            var modelId = GetAnyProperty(card, "ModelId", "Id")?.ToString();
+            return (object?)new Dictionary<string, object?>
+            {
+                ["instance_id"] = TryGetCombatCardIndex(card)
+                    ?? GetAnyProperty(card, "CombatCardIndex", "Index")?.ToString(),
+                ["model_id"] = modelId,
+                ["upgrade_level"] = GetAnyProperty(card, "CurrentUpgradeLevel", "UpgradeLevel") ?? 0,
+                ["cost"] = GetEnergyCost(card) ?? GetAnyProperty(card, "Cost", "CurrentCost") ?? 0,
+                ["cost_for_turn"] = GetEnergyCost(card),
+                ["retained"] = GetAnyProperty(card, "IsRetained", "Retained") ?? false,
+                ["exhausts"] = GetAnyProperty(card, "Exhausts", "ExhaustOnPlay") ?? false,
+                ["ethereal"] = modelId == "CARD.ASCENDERS_BANE"
+            };
+        }).ToList();
+    }
+
+    private static List<object?> ExportSnapshotModels(object? value, bool includeAmount)
+    {
+        return EnumerateObject(value).Select(item =>
+        {
+            if (item == null)
+            {
+                return null;
+            }
+            var model = new Dictionary<string, object?>
+            {
+                ["model_id"] = GetAnyProperty(item, "ModelId", "Id")?.ToString()
+            };
+            if (includeAmount)
+            {
+                model["amount"] = GetAnyProperty(item, "Amount", "Stacks") ?? 0;
+            }
+            return (object?)model;
+        }).ToList();
+    }
+
+    private static Dictionary<string, int> RngDeltas(
+        Dictionary<string, object?> before,
+        Dictionary<string, object?> after
+    )
+    {
+        var result = new Dictionary<string, int>();
+        foreach (var (key, afterValue) in after)
+        {
+            if (afterValue is not Dictionary<string, object?> afterState)
+            {
+                continue;
+            }
+            var afterCounter = Convert.ToInt32(afterState["counter"]);
+            var beforeCounter = before.TryGetValue(key, out var beforeValue)
+                && beforeValue is Dictionary<string, object?> beforeState
+                ? Convert.ToInt32(beforeState["counter"])
+                : 0;
+            result[key] = afterCounter - beforeCounter;
+        }
+        return result;
+    }
+
+    private static uint CurrentGameChecksum()
+    {
+        var runState = CurrentRunState()
+            ?? throw new InvalidOperationException("No active run state is available");
+        var fullState = NetFullCombatState.FromRun(runState, null);
+        return RunManager.Instance.ChecksumTracker.GenerateChecksum(fullState);
+    }
+
+    private static string SnakeCase(string value)
+    {
+        var builder = new StringBuilder();
+        for (var index = 0; index < value.Length; index++)
+        {
+            var character = value[index];
+            if (char.IsUpper(character) && index > 0)
+            {
+                builder.Append('_');
+            }
+            builder.Append(char.ToLowerInvariant(character));
+        }
+        return builder.ToString();
     }
 
     private static Dictionary<string, object?> ExportPlayer(object player)
@@ -675,8 +1153,15 @@ internal sealed class ReflectionCombatBridge : ICombatBridge
 
     private static object? GetProperty(object obj, string name)
     {
-        return obj.GetType()
+        var property = obj.GetType()
             .GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(obj);
+        if (property != null)
+        {
+            return property;
+        }
+        return obj.GetType()
+            .GetField(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
             ?.GetValue(obj);
     }
 

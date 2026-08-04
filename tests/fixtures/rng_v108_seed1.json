@@ -1,0 +1,12 @@
+{
+  "source": {
+    "game_version": "v0.108.0",
+    "game_commit": "58694f64",
+    "assembly_sha256": "ed982ba3bd0f7e03bcefcc06a7a0bed8996b76b4b9d5854d6dda17a374510236",
+    "bridge_version": "0.2.0"
+  },
+  "algorithm": "xoshiro256_star_star_v1",
+  "seed": 1,
+  "max_exclusive": 1000,
+  "values": [702, 520, 574, 391, 697, 143, 71, 381]
+}

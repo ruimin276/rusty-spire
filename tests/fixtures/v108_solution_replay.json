@@ -1,0 +1,31 @@
+{
+  "source": {
+    "game_version": "v0.108.0",
+    "game_commit": "58694f64",
+    "assembly_sha256": "ed982ba3bd0f7e03bcefcc06a7a0bed8996b76b4b9d5854d6dda17a374510236",
+    "bridge_version": "0.2.0"
+  },
+  "action_ids": [
+    "play:3:enemy_0",
+    "play:1",
+    "play:2",
+    "end_turn",
+    "play:5:enemy_0",
+    "play:7",
+    "play:8",
+    "end_turn",
+    "play:10:enemy_0",
+    "play:4:enemy_0",
+    "end_turn",
+    "play:3:enemy_0",
+    "play:9:enemy_0",
+    "play:5:enemy_0"
+  ],
+  "expected": {
+    "won": true,
+    "complete": true,
+    "hp_loss": 2,
+    "final_hp": 78,
+    "steps": 14
+  }
+}

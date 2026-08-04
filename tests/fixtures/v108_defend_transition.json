@@ -1,0 +1,30 @@
+{
+  "source": {
+    "game_version": "v0.108.0",
+    "game_commit": "58694f64",
+    "assembly_sha256": "ed982ba3bd0f7e03bcefcc06a7a0bed8996b76b4b9d5854d6dda17a374510236",
+    "bridge_version": "0.2.0"
+  },
+  "action": {
+    "id": "play:1",
+    "type": "card",
+    "card_id": "CARD.DEFEND_IRONCLAD",
+    "combat_card_index": "1",
+    "cost": 1
+  },
+  "expected": {
+    "player_hp": 80,
+    "player_block": 5,
+    "player_energy": 2,
+    "enemy_hp": 44,
+    "hand_instance_ids": ["0", "2", "3", "4"],
+    "discard_instance_ids": ["1"],
+    "rng_deltas": {
+      "shuffle": 0,
+      "monster_ai": 0,
+      "combat_targets": 0
+    },
+    "before_game_checksum": 1676884929,
+    "after_game_checksum": 2664063564
+  }
+}

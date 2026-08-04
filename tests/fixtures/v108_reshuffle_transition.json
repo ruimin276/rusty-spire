@@ -1,0 +1,23 @@
+{
+  "source": {
+    "game_version": "v0.108.0",
+    "game_commit": "58694f64",
+    "assembly_sha256": "ed982ba3bd0f7e03bcefcc06a7a0bed8996b76b4b9d5854d6dda17a374510236",
+    "bridge_version": "0.2.0"
+  },
+  "action": {"id": "end_turn", "type": "end_turn"},
+  "expected": {
+    "turn": 3,
+    "player_hp": 62,
+    "enemy_block": 6,
+    "enemy_move": "HISS_MOVE",
+    "hand_instance_ids": ["10", "4", "8", "7", "6"],
+    "draw_instance_ids": ["2", "3", "9", "5", "1"],
+    "discard_instance_ids": [],
+    "exhaust_instance_ids": ["0"],
+    "shuffle_counter_before": 10,
+    "shuffle_counter_after": 18,
+    "before_game_checksum": 3380825546,
+    "after_game_checksum": 703990647
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "source": {
+    "game_version": "v0.108.0",
+    "game_commit": "58694f64",
+    "assembly_sha256": "ed982ba3bd0f7e03bcefcc06a7a0bed8996b76b4b9d5854d6dda17a374510236",
+    "bridge_version": "0.2.0"
+  },
+  "action": {"id": "end_turn", "type": "end_turn"},
+  "expected": {
+    "turn": 2,
+    "player_hp": 68,
+    "player_block": 0,
+    "player_energy": 3,
+    "enemy_hp": 44,
+    "enemy_move": "SLICE_MOVE",
+    "enemy_move_history": ["BUTT_MOVE", "SLICE_MOVE"],
+    "hand_instance_ids": ["5", "6", "7", "8", "9"],
+    "draw_instance_ids": ["10"],
+    "discard_instance_ids": ["1", "2", "3", "4"],
+    "exhaust_instance_ids": ["0"],
+    "shuffle_counter_delta": 0,
+    "before_game_checksum": 1676884929,
+    "after_game_checksum": 3380825546
+  }
+}

@@ -71,6 +71,10 @@ internal sealed class OracleServer
                         export_state = true,
                         legal_actions = true,
                         state_hash = true,
+                        simulator_snapshot = true,
+                        rng_vector = true,
+                        debug_start_nibbit = true,
+                        live_trace_step = true,
                         live_step = true,
                         live_checkpoint = true,
                         live_restore_checkpoint = true,
@@ -78,6 +82,16 @@ internal sealed class OracleServer
                     }
                 },
                 "/export_state" => _bridge.ExportState(),
+                "/export_sim_snapshot" => _bridge.ExportSimulatorSnapshot(),
+                "/rng_vector" => _bridge.RngVector(
+                    (uint)(IntProperty(request, "seed") ?? 0),
+                    IntProperty(request, "count") ?? 8,
+                    IntProperty(request, "max_exclusive") ?? int.MaxValue
+                ),
+                "/debug_start_nibbit" => _bridge.StartDebugNibbit(
+                    BoolProperty(request, "allow_live_mutation"),
+                    IntProperty(request, "timeout_milliseconds") ?? 30_000
+                ),
                 "/legal_actions" => new { actions = _bridge.LegalActions(GetState(request)) },
                 "/step" => new { state = _bridge.Step(GetState(request), GetAction(request)) },
                 "/live_step" => new
@@ -88,6 +102,11 @@ internal sealed class OracleServer
                         IntProperty(request, "timeout_milliseconds") ?? 30_000
                     )
                 },
+                "/live_trace_step" => _bridge.LiveTraceStep(
+                    GetAction(request),
+                    BoolProperty(request, "allow_live_mutation"),
+                    IntProperty(request, "timeout_milliseconds") ?? 30_000
+                ),
                 "/live_checkpoint" => _bridge.SaveLiveCheckpoint(BoolProperty(request, "allow_live_mutation")),
                 "/live_restore_checkpoint" => new
                 {

@@ -7,7 +7,7 @@ namespace Sls2CombatOracle.Bridge;
 public static class ModEntry
 {
     public const string BridgeId = "sls2-combat-oracle";
-    public const string BridgeVersion = "0.1.3";
+    public const string BridgeVersion = "0.2.1";
 
     private static OracleServer? _server;
 
