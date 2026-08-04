@@ -1,0 +1,302 @@
+{
+  "ascensions": {
+    "deadly_enemies_level": 9,
+    "max_supported_level": 10,
+    "monster_hp_level": 7,
+    "tough_enemies_level": 8
+  },
+  "cards": {
+    "CARD.ASCENDERS_BANE": {
+      "cost": -1,
+      "keywords": [
+        "Ethereal",
+        "Unplayable",
+        "Eternal"
+      ]
+    },
+    "CARD.BASH": {
+      "cost": 2,
+      "damage": {
+        "base": 8,
+        "upgraded": 10
+      },
+      "power": {
+        "amount": {
+          "base": 2,
+          "upgraded": 3
+        },
+        "id": "POWER.VULNERABLE_POWER"
+      }
+    },
+    "CARD.DEFEND_IRONCLAD": {
+      "block": {
+        "base": 5,
+        "upgraded": 8
+      },
+      "cost": 1
+    },
+    "CARD.DEFEND_SILENT": {
+      "block": {
+        "base": 5,
+        "upgraded": 8
+      },
+      "cost": 1
+    },
+    "CARD.NEUTRALIZE": {
+      "cost": 0,
+      "damage": {
+        "base": 3,
+        "upgraded": 4
+      },
+      "power": {
+        "amount": {
+          "base": 1,
+          "upgraded": 2
+        },
+        "id": "POWER.WEAK_POWER"
+      }
+    },
+    "CARD.STRIKE_IRONCLAD": {
+      "cost": 1,
+      "damage": {
+        "base": 6,
+        "upgraded": 9
+      }
+    },
+    "CARD.STRIKE_SILENT": {
+      "cost": 1,
+      "damage": {
+        "base": 6,
+        "upgraded": 9
+      }
+    },
+    "CARD.SURVIVOR": {
+      "block": {
+        "base": 8,
+        "upgraded": 11
+      },
+      "cost": 1
+    }
+  },
+  "characters": {
+    "CHARACTER.IRONCLAD": {
+      "max_energy": 3
+    },
+    "CHARACTER.SILENT": {
+      "max_energy": 3
+    }
+  },
+  "combat_modifiers": {
+    "shrink": {
+      "denominator": 10,
+      "numerator": 7
+    },
+    "vulnerable": {
+      "denominator": 2,
+      "numerator": 3
+    },
+    "weak": {
+      "denominator": 4,
+      "numerator": 3
+    }
+  },
+  "encounters": {
+    "ENCOUNTER.FUZZY_WURM_CRAWLER_WEAK": {
+      "enemies": [
+        "MONSTER.FUZZY_WURM_CRAWLER"
+      ]
+    },
+    "ENCOUNTER.NIBBITS_NORMAL": {
+      "enemies": [
+        "MONSTER.NIBBIT",
+        "MONSTER.NIBBIT"
+      ]
+    },
+    "ENCOUNTER.NIBBITS_WEAK": {
+      "enemies": [
+        "MONSTER.NIBBIT"
+      ]
+    },
+    "ENCOUNTER.OVERGROWTH_CRAWLERS": {
+      "enemies": [
+        "MONSTER.FUZZY_WURM_CRAWLER",
+        "MONSTER.SHRINKER_BEETLE"
+      ]
+    },
+    "ENCOUNTER.SHRINKER_BEETLE_WEAK": {
+      "enemies": [
+        "MONSTER.SHRINKER_BEETLE"
+      ]
+    }
+  },
+  "monsters": {
+    "MONSTER.FUZZY_WURM_CRAWLER": {
+      "ascension_hp": {
+        "max": 59,
+        "min": 58
+      },
+      "hp": {
+        "max": 57,
+        "min": 55
+      },
+      "moves": {
+        "ACID_GOOP_MOVE": {
+          "damage": {
+            "ascension": 6,
+            "base": 4
+          },
+          "next_move": "FIRST_ACID_GOOP_MOVE"
+        },
+        "FIRST_ACID_GOOP_MOVE": {
+          "damage": {
+            "ascension": 6,
+            "base": 4
+          },
+          "next_move": "INHALE_MOVE"
+        },
+        "INHALE_MOVE": {
+          "next_move": "ACID_GOOP_MOVE",
+          "power": {
+            "amount": {
+              "ascension": 7,
+              "base": 7
+            },
+            "id": "POWER.STRENGTH_POWER",
+            "target": "self"
+          }
+        }
+      },
+      "opening_move": "FIRST_ACID_GOOP_MOVE"
+    },
+    "MONSTER.NIBBIT": {
+      "ascension_hp": {
+        "max": 48,
+        "min": 44
+      },
+      "hp": {
+        "max": 46,
+        "min": 42
+      },
+      "moves": {
+        "BUTT_MOVE": {
+          "damage": {
+            "ascension": 13,
+            "base": 12
+          },
+          "next_move": "SLICE_MOVE"
+        },
+        "HISS_MOVE": {
+          "next_move": "BUTT_MOVE",
+          "power": {
+            "amount": {
+              "ascension": 3,
+              "base": 2
+            },
+            "id": "POWER.STRENGTH_POWER",
+            "target": "self"
+          }
+        },
+        "SLICE_MOVE": {
+          "block": {
+            "ascension": 6,
+            "base": 5
+          },
+          "damage": {
+            "ascension": 7,
+            "base": 6
+          },
+          "next_move": "HISS_MOVE"
+        }
+      },
+      "opening_move": "BUTT_MOVE"
+    },
+    "MONSTER.SHRINKER_BEETLE": {
+      "ascension_hp": {
+        "max": 42,
+        "min": 40
+      },
+      "hp": {
+        "max": 40,
+        "min": 38
+      },
+      "moves": {
+        "CHOMP_MOVE": {
+          "damage": {
+            "ascension": 8,
+            "base": 7
+          },
+          "next_move": "STOMP_MOVE"
+        },
+        "SHRINKER_MOVE": {
+          "next_move": "CHOMP_MOVE",
+          "power": {
+            "amount": {
+              "ascension": 1,
+              "base": 1
+            },
+            "id": "POWER.SHRINK_POWER",
+            "target": "player"
+          }
+        },
+        "STOMP_MOVE": {
+          "damage": {
+            "ascension": 14,
+            "base": 13
+          },
+          "next_move": "CHOMP_MOVE"
+        }
+      },
+      "opening_move": "SHRINKER_MOVE"
+    }
+  },
+  "powers": {
+    "POWER.SHRINK_POWER": {
+      "source_id": "SHRINK",
+      "stack_behavior": "amount"
+    },
+    "POWER.STRENGTH_POWER": {
+      "source_id": "STRENGTH",
+      "stack_behavior": "amount"
+    },
+    "POWER.VULNERABLE_POWER": {
+      "source_id": "VULNERABLE",
+      "stack_behavior": "duration"
+    },
+    "POWER.WEAK_POWER": {
+      "source_id": "WEAK",
+      "stack_behavior": "duration"
+    }
+  },
+  "relics": {
+    "RELIC.BURNING_BLOOD": {
+      "combat_effect": {
+        "type": "inert"
+      }
+    },
+    "RELIC.RING_OF_THE_SNAKE": {
+      "combat_effect": {
+        "amount": 2,
+        "type": "additional_opening_draw"
+      }
+    },
+    "RELIC.WINGED_BOOTS": {
+      "combat_effect": {
+        "type": "inert"
+      }
+    }
+  },
+  "rng_profiles": {
+    "isolated_combat_xoshiro_v1": {
+      "algorithm": "xoshiro256_star_star_v1",
+      "stream_derivation": "numeric_seed_domain_v1"
+    }
+  },
+  "schema_version": 1,
+  "source": {
+    "channel": "stable",
+    "content_sha256": "97ec3fe802f0f69e935c9408767bd3c03c26207fe4eb5b2aec8230c6cfba4f2a",
+    "game_version": "v0.107.1",
+    "name": "spire_codex",
+    "retrieved_at": "2026-08-04T04:24:59.748023Z"
+  }
+}

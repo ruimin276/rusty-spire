@@ -2,22 +2,6 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::simulator::SimulatorError;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Scenario {
-    pub oracle: OracleConfig,
-    pub initial_state: CombatState,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct OracleConfig {
-    #[serde(rename = "type")]
-    pub oracle_type: String,
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct CombatState {
@@ -221,10 +205,4 @@ pub struct Action {
     pub choice_id: Option<String>,
     #[serde(default)]
     pub selection: Vec<String>,
-}
-
-pub fn validate_scenario_json(input: &str) -> Result<String, SimulatorError> {
-    let scenario: Scenario = serde_json::from_str(input)?;
-    crate::Simulator::validate_scenario(&scenario)?;
-    Ok(serde_json::json!({"ok": true, "snapshot_schema": 2}).to_string())
 }

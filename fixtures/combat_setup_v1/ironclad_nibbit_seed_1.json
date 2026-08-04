@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "catalog_sha256": "c0f20eda010011810970f89eed9de79728b27ddce45a60a6657617520f32ec75",
+  "ascension_level": 0,
+  "rng": {
+    "run_seed": "1",
+    "profile": "isolated_combat_xoshiro_v1"
+  },
+  "character": {
+    "id": "CHARACTER.IRONCLAD",
+    "current_hp": 80,
+    "max_hp": 80
+  },
+  "deck": [
+    {"id": "CARD.STRIKE_IRONCLAD", "quantity": 5, "upgrade_level": 0},
+    {"id": "CARD.DEFEND_IRONCLAD", "quantity": 4, "upgrade_level": 0},
+    {"id": "CARD.BASH", "quantity": 1, "upgrade_level": 0}
+  ],
+  "relics": [{"id": "RELIC.BURNING_BLOOD"}],
+  "potions": [],
+  "encounter": {"type": "catalog", "id": "ENCOUNTER.NIBBITS_WEAK"}
+}

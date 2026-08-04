@@ -1,14 +1,5 @@
 use crate::state::RngStreamState;
-
-const MBIG: i32 = i32::MAX;
-const MSEED: i32 = 161_803_398;
-
-#[derive(Clone, Debug)]
-pub struct DotNetSeededRandom {
-    seed_array: [i32; 56],
-    inext: usize,
-    inextp: usize,
-}
+use blake3::Hasher;
 
 #[derive(Clone, Debug)]
 pub struct Xoshiro256StarStar {
@@ -52,82 +43,8 @@ fn splitmix64(seed: &mut u64) -> u64 {
     value ^ (value >> 31)
 }
 
-impl DotNetSeededRandom {
-    pub fn new(seed: u32) -> Self {
-        let signed_seed = seed as i32;
-        let subtraction = if signed_seed == i32::MIN {
-            i32::MAX
-        } else {
-            signed_seed.abs()
-        };
-        let mut seed_array = [0; 56];
-        let mut mj = MSEED - subtraction;
-        if mj < 0 {
-            mj += MBIG;
-        }
-        seed_array[55] = mj;
-        let mut mk = 1;
-        for i in 1..55 {
-            let ii = (21 * i) % 55;
-            seed_array[ii] = mk;
-            mk = mj - mk;
-            if mk < 0 {
-                mk += MBIG;
-            }
-            mj = seed_array[ii];
-        }
-        for _ in 0..4 {
-            for i in 1..56 {
-                seed_array[i] -= seed_array[1 + (i + 30) % 55];
-                if seed_array[i] < 0 {
-                    seed_array[i] += MBIG;
-                }
-            }
-        }
-        Self {
-            seed_array,
-            inext: 0,
-            inextp: 21,
-        }
-    }
-
-    fn internal_sample(&mut self) -> i32 {
-        let mut loc_inext = self.inext + 1;
-        if loc_inext >= 56 {
-            loc_inext = 1;
-        }
-        let mut loc_inextp = self.inextp + 1;
-        if loc_inextp >= 56 {
-            loc_inextp = 1;
-        }
-        let mut ret = self.seed_array[loc_inext] - self.seed_array[loc_inextp];
-        if ret == MBIG {
-            ret -= 1;
-        }
-        if ret < 0 {
-            ret += MBIG;
-        }
-        self.seed_array[loc_inext] = ret;
-        self.inext = loc_inext;
-        self.inextp = loc_inextp;
-        ret
-    }
-
-    pub fn next_int(&mut self, max_exclusive: u32) -> u32 {
-        assert!(max_exclusive > 0 && max_exclusive <= i32::MAX as u32);
-        ((self.internal_sample() as f64 / MBIG as f64) * max_exclusive as f64) as u32
-    }
-}
-
 pub fn next_int(algorithm: &str, stream: &mut RngStreamState, max_exclusive: u32) -> u32 {
     let result = match algorithm {
-        "dotnet_system_random_v1" => {
-            let mut rng = DotNetSeededRandom::new(stream.seed);
-            for _ in 0..stream.counter {
-                rng.internal_sample();
-            }
-            rng.next_int(max_exclusive)
-        }
         "xoshiro256_star_star_v1" => {
             let mut rng = Xoshiro256StarStar::new(stream.seed);
             for _ in 0..stream.counter {
@@ -141,30 +58,18 @@ pub fn next_int(algorithm: &str, stream: &mut RngStreamState, max_exclusive: u32
     result
 }
 
+pub fn domain_seed(base_seed: u32, stream_name: &str) -> u32 {
+    let mut hasher = Hasher::new();
+    hasher.update(b"sls2-combat-rng-domain-v1\0");
+    hasher.update(&base_seed.to_le_bytes());
+    hasher.update(stream_name.as_bytes());
+    let digest = hasher.finalize();
+    u32::from_le_bytes(digest.as_bytes()[0..4].try_into().expect("four bytes"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn matches_seeded_system_random_known_vector() {
-        let mut rng = DotNetSeededRandom::new(1);
-        assert_eq!(rng.internal_sample(), 534_011_718);
-        assert_eq!(rng.internal_sample(), 237_820_880);
-        assert_eq!(rng.internal_sample(), 1_002_897_798);
-    }
-
-    #[test]
-    fn counter_reconstruction_is_branchable() {
-        let mut stream = RngStreamState {
-            seed: 1,
-            counter: 2,
-        };
-        assert_eq!(
-            next_int("dotnet_system_random_v1", &mut stream, i32::MAX as u32),
-            1_002_897_798
-        );
-        assert_eq!(stream.counter, 3);
-    }
 
     #[test]
     fn xoshiro_counter_reconstruction_is_branchable() {
@@ -184,5 +89,12 @@ mod tests {
             values[3]
         );
         assert_eq!(values, vec![702, 520, 574, 391]);
+    }
+
+    #[test]
+    fn named_stream_derivation_is_stable_and_separated() {
+        assert_eq!(domain_seed(1, "shuffle"), 3_114_687_082);
+        assert_eq!(domain_seed(1, "monster_ai"), 1_831_361_556);
+        assert_ne!(domain_seed(1, "shuffle"), domain_seed(2, "shuffle"));
     }
 }
