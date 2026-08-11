@@ -514,9 +514,16 @@ mod tests {
         assert!((42..=46).contains(&combat.state.enemies[0].max_hp));
         assert_eq!(combat.state.rng.streams["monster_ai"].counter, 1);
 
+        value.ascension_level = catalog.data.ascensions.monster_hp_level - 1;
+        let before_tough = initialize(&catalog, &value, false).unwrap();
+        assert!((42..=46).contains(&before_tough.state.enemies[0].max_hp));
         value.ascension_level = catalog.data.ascensions.monster_hp_level;
-        let combat = initialize(&catalog, &value, false).unwrap();
-        assert!((44..=48).contains(&combat.state.enemies[0].max_hp));
+        let tough = initialize(&catalog, &value, false).unwrap();
+        assert!((44..=48).contains(&tough.state.enemies[0].max_hp));
+        assert_eq!(
+            tough.state.enemies[0].max_hp,
+            before_tough.state.enemies[0].max_hp + 2
+        );
     }
 
     #[test]

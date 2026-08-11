@@ -38,17 +38,25 @@ python3 tools/spire_codex/build_catalog.py \
   --output /tmp/combat-catalog.json
 ```
 
-The builder verifies every raw endpoint hash, confirms that each promoted
-catalog ID and referenced power exists in that one snapshot, refuses to mix
-stable and beta, injects the snapshot provenance, and emits deterministic JSON.
-The reviewed file remains the authority for which values and handlers are
-promoted. Review the resulting diff, add source-pinned mechanics vectors, then
-replace the runtime catalog deliberately and update setup hashes.
+The builder verifies every raw endpoint hash, reads promotion values directly
+from those hash-checked raw responses, confirms that each promoted
+catalog ID and referenced power exists in that one snapshot, and checks the
+reliable static fields used by the runtime: card costs and upgrades, character
+energy, monster HP and attack values, parsed block/power values, encounter
+composition, and ascension thresholds. It refuses to mix stable and beta,
+injects the snapshot provenance, and emits deterministic JSON. A mismatch stops
+promotion instead of silently trusting the reviewed file.
+
+The reviewed file remains the authority for which entities and executable
+handlers are promoted. Review the resulting diff, add source-pinned mechanics
+vectors, then replace the runtime catalog deliberately and update setup hashes.
 
 Spire Codex parser output alone is insufficient for ordering, targeting,
-rounding, RNG consumption, custom commands, and sometimes ascension variants.
-For those rules use its decompiled source, parser implementation, and extraction
-manifests, plus a pinned executable test, before changing Rust behavior.
+rounding, RNG consumption, custom commands, duplicate encounter members, and
+some ascension power/block variants. The builder validates only fields the
+snapshot represents reliably; reviewed overrides for parser gaps still require
+its decompiled source, parser implementation, extraction manifests, and a
+pinned executable test before changing Rust behavior.
 
 ## Tests
 

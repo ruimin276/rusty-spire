@@ -119,6 +119,25 @@ fn compare_reports_hp_loss_delta() {
 }
 
 #[test]
+fn converted_ironclad_nibbit_golden_keeps_the_verified_outcome() {
+    let catalog_path = catalog();
+    let input = fixture("ironclad_nibbit_seed_1.json");
+    let result = run_json(&[
+        "solve",
+        "--catalog",
+        catalog_path.to_str().unwrap(),
+        "--input",
+        input.to_str().unwrap(),
+    ]);
+    assert_eq!(result["won"], true);
+    assert_eq!(result["complete"], true);
+    assert_eq!(result["optimality_proven"], true);
+    assert_eq!(result["hp_loss"], 2);
+    assert_eq!(result["final_hp"], 78);
+    assert_eq!(result["actions"].as_array().unwrap().len(), 14);
+}
+
+#[test]
 fn malformed_and_multi_enemy_inputs_fail_closed() {
     let catalog_path = catalog();
     let input = fixture("silent_nibbit_seed_1.json");
