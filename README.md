@@ -6,10 +6,10 @@ reward progression, or perform network access at runtime.
 
 The active workspace has three crates:
 
-- `sls2-combat-core`: catalog loading, strict setup validation, named RNG
+- `rusty-spire-core`: catalog loading, strict setup validation, named RNG
   streams, combat mechanics, state transitions, hashing, policy, and search.
-- `sls2-combat-cli`: the `sls2-combat` command.
-- `sls2-combat-wasm`: a small browser ABI that embeds the reviewed catalog and
+- `rusty-spire-cli`: the `rusty-spire` command.
+- `rusty-spire-wasm`: a small browser ABI that embeds the reviewed catalog and
   runs the same Rust initialization and optimal search in a Web Worker.
 
 Python is limited to the independent Spire Codex crawler and reviewed catalog
@@ -26,14 +26,14 @@ the interface and ABI transport but does not reimplement combat mechanics.
 ```bash
 cargo build --release
 
-target/release/sls2-combat catalog-info \
+target/release/rusty-spire catalog-info \
   --catalog catalogs/combat_v0.107.1.json
 
-target/release/sls2-combat validate \
+target/release/rusty-spire validate \
   --catalog catalogs/combat_v0.107.1.json \
   --input fixtures/combat_setup_v1/silent_nibbit_seed_1.json
 
-target/release/sls2-combat solve \
+target/release/rusty-spire solve \
   --catalog catalogs/combat_v0.107.1.json \
   --input fixtures/combat_setup_v1/silent_nibbit_seed_1.json
 ```
@@ -52,7 +52,7 @@ and upload `web/dist/` to any static host.
 Compare two combat setups:
 
 ```bash
-target/release/sls2-combat compare \
+target/release/rusty-spire compare \
   --catalog catalogs/combat_v0.107.1.json \
   --baseline fixtures/combat_setup_v1/silent_nibbit_seed_1.json \
   --candidate fixtures/combat_setup_v1/silent_fuzzy_seed_4.json
@@ -86,6 +86,6 @@ python3 -m unittest discover -s tools/spire_codex/tests -v
 
 # Dedicated release-mode performance gate: exactly 100,000 explored states,
 # under five seconds.
-cargo test --release -p sls2-combat-core --test silent_weak_matrix \
+cargo test --release -p rusty-spire-core --test silent_weak_matrix \
   expands_one_hundred_thousand_states_under_five_seconds -- --ignored
 ```

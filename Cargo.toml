@@ -1,8 +1,8 @@
 [workspace]
 members = [
-  "crates/sls2-combat-core",
-  "crates/sls2-combat-cli",
-  "crates/sls2-combat-wasm",
+  "crates/rusty-spire-core",
+  "crates/rusty-spire-cli",
+  "crates/rusty-spire-wasm",
 ]
 resolver = "2"
 

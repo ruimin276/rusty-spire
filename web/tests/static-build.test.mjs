@@ -24,7 +24,7 @@ test("ships the simulator contract in the browser bundle", async () => {
   assert.match(bundle, /isolated_combat_xoshiro_v1/);
   assert.match(bundle, /minimize_hp_loss/);
   assert.match(bundle, /7a27dc78a49f6523b64dcc140117f8c21690d1fde6240208de488ee0e88e088c/);
-  const wasm = await readFile(new URL("dist/sls2_combat.wasm", root));
+  const wasm = await readFile(new URL("dist/rusty_spire_wasm.wasm", root));
   assert.deepEqual([...wasm.subarray(0, 4)], [0, 97, 115, 109]);
   assert.ok(wasm.length > 100_000, "expected the compiled Rust combat engine");
   assert.ok(assetNames.some((name) => name.startsWith("simulator-worker-") && name.endsWith(".js")));

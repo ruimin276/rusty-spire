@@ -2,7 +2,7 @@
 
 ## Runtime boundaries
 
-`sls2-combat-core` is a deterministic, offline Rust library. A combat is
+`rusty-spire-core` is a deterministic, offline Rust library. A combat is
 created only from a `CombatCatalogV1` file and a `CombatSetupV1` document. The
 setup must contain the SHA-256 of the exact catalog bytes, preventing a data
 refresh from silently changing an existing simulation.
@@ -12,7 +12,7 @@ The library exposes `initialize`, `Simulator::legal_actions`,
 clones its input state. RNG counters are part of that state, so branch
 exploration cannot mutate another branch.
 
-The `sls2-combat-wasm` crate exposes the same `initialize` and `solve` path to a
+The `rusty-spire-wasm` crate exposes the same `initialize` and `solve` path to a
 static browser application through a minimal JSON ABI. The reviewed catalog is
 embedded at compile time. Browser searches run in a Web Worker and import only
 a monotonic clock from JavaScript; RNG, state transitions, hashing, policy, and
@@ -22,7 +22,7 @@ resource-limit and `optimality_proven` semantics.
 ## `CombatSetupV1`
 
 The strict JSON schema is represented in
-`crates/sls2-combat-core/src/setup.rs`. Unknown fields are rejected. Required
+`crates/rusty-spire-core/src/setup.rs`. Unknown fields are rejected. Required
 inputs are:
 
 - `schema_version: 1` and the exact `catalog_sha256`;

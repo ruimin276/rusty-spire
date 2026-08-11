@@ -4,13 +4,13 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use sls2_combat_core::{
+use rusty_spire_core::{
     CombatCatalog, CombatSetupV1, PolicyKind, SolveLimits, compare, initialize, solve,
 };
 
 #[derive(Parser)]
 #[command(
-    name = "sls2-combat",
+    name = "rusty-spire",
     version,
     about = "Deterministic isolated STS2 combat simulator"
 )]
