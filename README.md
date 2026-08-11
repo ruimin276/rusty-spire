@@ -1,5 +1,7 @@
 # Slay the Spire 2 Isolated Combat Simulator
 
+[![CI](https://github.com/ruimin276/rusty-spire/actions/workflows/ci.yml/badge.svg)](https://github.com/ruimin276/rusty-spire/actions/workflows/ci.yml)
+
 This repository contains a pure Rust simulator and optimal-search CLI for one
 isolated Slay the Spire 2 combat. It does not launch the game, simulate map or
 reward progression, or perform network access at runtime.
@@ -80,12 +82,60 @@ See [simulator mechanics and schemas](docs/simulator.md) and
 
 ## Verification
 
+CI exposes three required checks. Run their equivalents locally after adding
+the formatting, Clippy, coverage, and WebAssembly components:
+
 ```bash
-cargo test --workspace
+rustup component add rustfmt clippy llvm-tools-preview
+rustup target add wasm32-unknown-unknown
+```
+
+### Test
+
+```bash
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+cargo clippy --target wasm32-unknown-unknown -p rusty-spire-wasm --locked -- -D warnings
+cargo test --workspace --all-features --locked --no-fail-fast
 python3 -m unittest discover -s tools/spire_codex/tests -v
+
+cd web
+npm ci
+npm test
+cd ..
 
 # Dedicated release-mode performance gate: exactly 100,000 explored states,
 # under five seconds.
-cargo test --release -p rusty-spire-core --test silent_weak_matrix \
+cargo test --locked --release -p rusty-spire-core --test silent_weak_matrix \
   expands_one_hundred_thousand_states_under_five_seconds -- --ignored
+```
+
+### Coverage
+
+Rust coverage is enforced at 85% lines. Install the pinned tool once, then run:
+
+```bash
+cargo install cargo-llvm-cov --version 0.8.7 --locked
+cargo llvm-cov \
+  --package rusty-spire-core \
+  --package rusty-spire-cli \
+  --all-features \
+  --locked \
+  --fail-under-lines 85
+```
+
+### Build
+
+```bash
+cargo build --workspace --release --locked
+target/release/rusty-spire --version
+
+cd web
+npm ci
+npm run build
+cd ..
+
+test -f web/dist/index.html
+test -f web/dist/rusty_spire_wasm.wasm
+git diff --exit-code -- web/public/rusty_spire_wasm.wasm
 ```

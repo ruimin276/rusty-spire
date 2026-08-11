@@ -1,0 +1,290 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_VERSION: "1.97.1"
+  NODE_VERSION: "24"
+  PYTHON_VERSION: "3.12"
+  CARGO_LLVM_COV_VERSION: "0.8.7"
+
+jobs:
+  rust-tests:
+    name: Rust quality and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_VERSION" \
+            --profile minimal \
+            --component rustfmt,clippy \
+            --target wasm32-unknown-unknown
+          rustup default "$RUST_VERSION"
+
+      - name: Cache Cargo files
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ github.job }}-${{ env.RUST_VERSION }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ github.job }}-${{ env.RUST_VERSION }}-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Lint native targets
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+      - name: Lint WebAssembly target
+        run: cargo clippy --target wasm32-unknown-unknown -p rusty-spire-wasm --locked -- -D warnings
+
+      - name: Run Rust tests
+        run: cargo test --workspace --all-features --locked --no-fail-fast
+
+  python-tests:
+    name: Python catalog tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run catalog tooling tests
+        run: python -m unittest discover -s tools/spire_codex/tests -v
+
+  web-tests:
+    name: Web and WASM tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_VERSION" \
+            --profile minimal \
+            --target wasm32-unknown-unknown
+          rustup default "$RUST_VERSION"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Cache Cargo files
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ github.job }}-${{ env.RUST_VERSION }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ github.job }}-${{ env.RUST_VERSION }}-
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Run web and WASM tests
+        working-directory: web
+        run: npm test
+
+  benchmark:
+    name: Performance benchmark
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_VERSION" --profile minimal
+          rustup default "$RUST_VERSION"
+
+      - name: Cache Cargo files
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ github.job }}-${{ env.RUST_VERSION }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ github.job }}-${{ env.RUST_VERSION }}-
+
+      - name: Enforce the 100,000-state performance gate
+        run: >-
+          cargo test --locked --release -p rusty-spire-core
+          --test silent_weak_matrix
+          expands_one_hundred_thousand_states_under_five_seconds
+          -- --ignored --nocapture
+
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    if: ${{ always() }}
+    needs: [rust-tests, python-tests, web-tests, benchmark]
+    env:
+      RUST_RESULT: ${{ needs.rust-tests.result }}
+      PYTHON_RESULT: ${{ needs.python-tests.result }}
+      WEB_RESULT: ${{ needs.web-tests.result }}
+      BENCHMARK_RESULT: ${{ needs.benchmark.result }}
+    steps:
+      - name: Require every test job to succeed
+        run: |
+          printf 'Rust: %s\nPython: %s\nWeb/WASM: %s\nBenchmark: %s\n' \
+            "$RUST_RESULT" "$PYTHON_RESULT" "$WEB_RESULT" "$BENCHMARK_RESULT"
+          test "$RUST_RESULT" = success
+          test "$PYTHON_RESULT" = success
+          test "$WEB_RESULT" = success
+          test "$BENCHMARK_RESULT" = success
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust coverage toolchain
+        run: |
+          rustup toolchain install "$RUST_VERSION" \
+            --profile minimal \
+            --component llvm-tools-preview
+          rustup default "$RUST_VERSION"
+
+      - name: Cache Cargo coverage files
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/bin/cargo-llvm-cov
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ github.job }}-${{ env.RUST_VERSION }}-${{ env.CARGO_LLVM_COV_VERSION }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ github.job }}-${{ env.RUST_VERSION }}-${{ env.CARGO_LLVM_COV_VERSION }}-
+
+      - name: Install cargo-llvm-cov
+        run: |
+          if ! cargo llvm-cov --version 2>/dev/null | grep -Fq "cargo-llvm-cov $CARGO_LLVM_COV_VERSION"; then
+            cargo install cargo-llvm-cov --version "$CARGO_LLVM_COV_VERSION" --locked
+          fi
+
+      - name: Collect Rust coverage
+        run: >-
+          cargo llvm-cov
+          --package rusty-spire-core
+          --package rusty-spire-cli
+          --all-features
+          --locked
+          --no-report
+
+      - name: Enforce and summarize Rust coverage
+        run: |
+          summary="$RUNNER_TEMP/coverage-summary.txt"
+          set +e
+          cargo llvm-cov report --summary-only --fail-under-lines 85 >"$summary" 2>&1
+          status=$?
+          set -e
+
+          cat "$summary"
+          {
+            echo '## Rust coverage'
+            echo
+            echo 'Required line coverage: **85%**'
+            echo
+            echo '```text'
+            cat "$summary"
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+
+          exit "$status"
+
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install "$RUST_VERSION" \
+            --profile minimal \
+            --target wasm32-unknown-unknown
+          rustup default "$RUST_VERSION"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Cache Cargo files
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ github.job }}-${{ env.RUST_VERSION }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ github.job }}-${{ env.RUST_VERSION }}-
+
+      - name: Build release workspace
+        run: cargo build --workspace --release --locked
+
+      - name: Smoke-test release CLI
+        run: target/release/rusty-spire --version
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build production website
+        working-directory: web
+        run: npm run build
+
+      - name: Verify production outputs
+        run: |
+          test -f web/dist/index.html
+          test -f web/dist/rusty_spire_wasm.wasm
+          find web/dist/assets -maxdepth 1 -type f -name '*.js' -print -quit | grep -q .
+          find web/dist/assets -maxdepth 1 -type f -name '*.css' -print -quit | grep -q .
+
+      - name: Verify committed WASM is current
+        run: git diff --exit-code -- web/public/rusty_spire_wasm.wasm
