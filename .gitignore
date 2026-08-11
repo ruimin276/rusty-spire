@@ -15,5 +15,6 @@ venv/
 target/
 *.so
 .DS_Store
+.codegraph/
 data/upstream/*
 !data/upstream/.gitignore

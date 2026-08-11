@@ -29,3 +29,16 @@ test("ships the simulator contract in the browser bundle", async () => {
   assert.ok(wasm.length > 100_000, "expected the compiled Rust combat engine");
   assert.ok(assetNames.some((name) => name.startsWith("simulator-worker-") && name.endsWith(".js")));
 });
+
+test("ships the supported Spire Codex artwork", async () => {
+  const artwork = [
+    "characters/silent.webp",
+    "characters/ironclad.webp",
+    "monsters/nibbit.webp",
+    "monsters/fuzzy_wurm_crawler.webp",
+    "monsters/shrinker_beetle.webp",
+    "cards/strike_silent.webp",
+    "cards/bash.webp",
+  ];
+  await Promise.all(artwork.map((path) => access(new URL(`dist/spire-codex/${path}`, root))));
+});

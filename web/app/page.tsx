@@ -6,35 +6,68 @@ import { solveCombat, type BrowserSolveResult, type TraceStep } from "../src/sim
 type CharacterId = "silent" | "ironclad";
 type EnemyId = "nibbit" | "fuzzy_wurm_crawler" | "shrinker_beetle";
 
+type DeckItem = {
+  name: string;
+  type: "Attack" | "Skill";
+  quantity: number;
+  asset: string;
+};
+
 const CATALOG_SHA =
   "7a27dc78a49f6523b64dcc140117f8c21690d1fde6240208de488ee0e88e088c";
+
+const characters = {
+  silent: {
+    name: "The Silent",
+    hp: 70,
+    description: "Starter deck · 12 cards",
+    asset: "./spire-codex/characters/silent.webp",
+  },
+  ironclad: {
+    name: "Ironclad",
+    hp: 80,
+    description: "Starter deck · 10 cards",
+    asset: "./spire-codex/characters/ironclad.webp",
+  },
+} as const;
 
 const enemies = {
   nibbit: {
     name: "Nibbit",
-    code: "NIB",
     hp: [42, 46],
     ascensionHp: [44, 48],
     intent: "12 attack",
-    accent: "coral",
+    asset: "./spire-codex/monsters/nibbit.webp",
   },
   fuzzy_wurm_crawler: {
     name: "Fuzzy Wurm Crawler",
-    code: "FWC",
     hp: [55, 57],
     ascensionHp: [58, 59],
     intent: "4 attack",
-    accent: "acid",
+    asset: "./spire-codex/monsters/fuzzy_wurm_crawler.webp",
   },
   shrinker_beetle: {
     name: "Shrinker Beetle",
-    code: "SHR",
     hp: [38, 40],
     ascensionHp: [40, 42],
-    intent: "1 shrink",
-    accent: "violet",
+    intent: "1 Shrink",
+    asset: "./spire-codex/monsters/shrinker_beetle.webp",
   },
 } as const;
+
+const decks: Record<CharacterId, DeckItem[]> = {
+  silent: [
+    { name: "Strike", type: "Attack", quantity: 5, asset: "./spire-codex/cards/strike_silent.webp" },
+    { name: "Defend", type: "Skill", quantity: 5, asset: "./spire-codex/cards/defend_silent.webp" },
+    { name: "Neutralize", type: "Attack", quantity: 1, asset: "./spire-codex/cards/neutralize.webp" },
+    { name: "Survivor", type: "Skill", quantity: 1, asset: "./spire-codex/cards/survivor.webp" },
+  ],
+  ironclad: [
+    { name: "Strike", type: "Attack", quantity: 5, asset: "./spire-codex/cards/strike_ironclad.webp" },
+    { name: "Defend", type: "Skill", quantity: 4, asset: "./spire-codex/cards/defend_ironclad.webp" },
+    { name: "Bash", type: "Attack", quantity: 1, asset: "./spire-codex/cards/bash.webp" },
+  ],
+};
 
 const quickSeeds = [1, 2, 4, 7, 17, 42];
 
@@ -52,18 +85,9 @@ function cardName(modelId: string) {
     .join(" ");
 }
 
-function cardCost(name: string) {
-  if (name === "Neutralize") return 0;
-  if (name === "Bash") return 2;
-  return 1;
-}
-
-function cardEffect(name: string) {
-  if (name === "Strike") return "6 DMG";
-  if (name === "Defend") return "5 BLK";
-  if (name === "Survivor") return "8 BLK";
-  if (name === "Bash") return "8 DMG · 2 VULN";
-  return "3 DMG · 1 WK";
+function cardAsset(name: string, character: CharacterId) {
+  const match = decks[character].find((card) => card.name === name);
+  return match?.asset ?? decks[character][0].asset;
 }
 
 function traceRows(steps: TraceStep[]) {
@@ -88,7 +112,7 @@ function traceRows(steps: TraceStep[]) {
 
 function buildSetup(character: CharacterId, enemy: EnemyId, seed: number, ascension: number) {
   const isSilent = character === "silent";
-  const hp = isSilent ? 70 : 80;
+  const hp = characters[character].hp;
   const range = ascension >= 8 ? enemies[enemy].ascensionHp : enemies[enemy].hp;
   const enemyHp = Math.floor((range[0] + range[1]) / 2);
 
@@ -118,13 +142,7 @@ function buildSetup(character: CharacterId, enemy: EnemyId, seed: number, ascens
     potions: [],
     encounter: {
       type: "custom",
-      enemies: [
-        {
-          id: `MONSTER.${enemy.toUpperCase()}`,
-          current_hp: enemyHp,
-          max_hp: enemyHp,
-        },
-      ],
+      enemies: [{ id: `MONSTER.${enemy.toUpperCase()}`, current_hp: enemyHp, max_hp: enemyHp }],
     },
     policy: "minimize_hp_loss",
   };
@@ -164,23 +182,12 @@ export default function Home() {
     : null;
   const trace = result ? traceRows(result.actions) : [];
   const proofLabel = isSolving
-    ? "WASM SEARCH RUNNING"
+    ? "Search running"
     : result?.optimality_proven
-      ? result.won ? "WASM OPTIMUM PROVEN" : "NO WINNING LINE"
-      : result ? "WASM SEARCH INCOMPLETE" : solveError ? "WASM ERROR" : "RUST / WASM READY";
-
-  const deck = character === "silent"
-    ? [
-        ["Strike", "Attack", 5],
-        ["Defend", "Skill", 5],
-        ["Neutralize", "Attack", 1],
-        ["Survivor", "Skill", 1],
-      ]
-    : [
-        ["Strike", "Attack", 5],
-        ["Defend", "Skill", 4],
-        ["Bash", "Attack", 1],
-      ];
+      ? result.won ? "Optimal result" : "No winning line"
+      : result ? "Search incomplete" : solveError ? "Solver error" : "Ready";
+  const selectedCharacter = characters[character];
+  const selectedEnemy = enemies[enemy];
 
   async function solve() {
     setIsSolving(true);
@@ -203,240 +210,254 @@ export default function Home() {
   }
 
   return (
-    <main className="site-shell">
-      <header className="topbar">
+    <div className="app-shell" id="top">
+      <header className="app-header">
         <a className="brand" href="#top" aria-label="SLS2 Combat Lab home">
           <span className="brand-mark">S2</span>
-          <span>SLS2 / COMBAT LAB</span>
+          <span><strong>Combat Lab</strong><small>Slay the Spire 2</small></span>
         </a>
-        <div className="catalog-status">
-          <span className="status-dot" />
-          <span>RUST / WASM LOCAL</span>
-          <span className="catalog-hash">7a27dc78</span>
+        <nav aria-label="Primary navigation">
+          <a href="#workspace">Solver</a>
+          <a href="#method">Method</a>
+          <a href="https://github.com/ruimin276/rusty-spire" target="_blank" rel="noreferrer">Source ↗</a>
+        </nav>
+        <div className="runtime-status" title={`Catalog ${CATALOG_SHA}`}>
+          <span className="status-dot" /> Local Rust/WASM
         </div>
-        <a className="text-link" href="#method">How it works <span>↗</span></a>
       </header>
 
-      <section className="hero" id="top">
-        <div>
-          <p className="eyebrow">DETERMINISTIC COMBAT SEARCH</p>
-          <h1>Find the line.<br /><em>Keep the HP.</em></h1>
-        </div>
-        <p className="hero-copy">
-          Reconstruct a single combat from its seed, then search every legal line for the
-          smallest possible health loss. Same setup in, same trace out.
-        </p>
-      </section>
-
-      <section className="workbench" aria-label="Combat simulator workbench">
-        <aside className="setup-panel">
-          <div className="panel-heading">
-            <span className="step-number">01</span>
-            <div><p className="kicker">COMBAT INPUT</p><h2>Build the encounter</h2></div>
+      <main>
+        <section className="page-intro">
+          <div>
+            <p className="eyebrow">Deterministic combat search</p>
+            <h1>Combat solver</h1>
+            <p>Configure one isolated encounter and find the winning line with the least HP loss.</p>
           </div>
-
-          <fieldset className="control-group">
-            <legend>Character</legend>
-            <div className="segment-control">
-              {(["silent", "ironclad"] as CharacterId[]).map((id) => (
-                <button
-                  type="button"
-                  key={id}
-                  className={character === id ? "active" : ""}
-                  onClick={() => setCharacter(id)}
-                >
-                  <span className={`character-glyph ${id}`}>{id === "silent" ? "S" : "I"}</span>
-                  <span>{id === "silent" ? "The Silent" : "Ironclad"}</span>
-                  <small>{id === "silent" ? "70 HP" : "80 HP"}</small>
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          <fieldset className="control-group">
-            <legend>Single enemy</legend>
-            <div className="enemy-list">
-              {(Object.keys(enemies) as EnemyId[]).map((id) => {
-                const item = enemies[id];
-                return (
-                  <button
-                    type="button"
-                    key={id}
-                    className={`enemy-option ${enemy === id ? "active" : ""}`}
-                    onClick={() => setEnemy(id)}
-                  >
-                    <span className={`enemy-sigil ${item.accent}`}>{item.code}</span>
-                    <span className="enemy-name">{item.name}<small>{item.hp[0]}–{item.hp[1]} HP</small></span>
-                    <span className="enemy-intent">{item.intent}</span>
-                    <span className="radio-mark" />
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          <div className="seed-row">
-            <label htmlFor="seed">Run seed</label>
-            <input
-              id="seed"
-              type="number"
-              min="0"
-              max="4294967295"
-              value={seed}
-              onChange={(event) => setSeed(Math.min(4_294_967_295, Math.max(0, Number(event.target.value))))}
-            />
-          </div>
-          <div className="seed-presets" aria-label="Seed presets">
-            {quickSeeds.map((value) => (
-              <button type="button" key={value} className={seed === value ? "active" : ""} onClick={() => setSeed(value)}>{value}</button>
-            ))}
-          </div>
-
-          <div className="ascension-control">
-            <div><label htmlFor="ascension">Ascension</label><output>A{ascension}</output></div>
-            <input id="ascension" type="range" min="0" max="10" value={ascension} onChange={(event) => setAscension(Number(event.target.value))} />
-            <div className="range-labels"><span>BASE</span><span>TOUGH · A8</span><span>DEADLY · A9</span></div>
-          </div>
-
-          <button className="solve-button" type="button" onClick={solve} disabled={isSolving}>
-            <span>{isSolving ? "RUST IS SEARCHING" : "RUN OPTIMAL SEARCH"}</span>
-            <span className="button-arrow">{isSolving ? "···" : "→"}</span>
-          </button>
-          <button className="copy-button" type="button" onClick={copySetup}>{copied ? "SETUP COPIED" : "COPY COMBATSETUPV1 JSON"}</button>
-        </aside>
-
-        <section className="result-panel" key={runKey} aria-live="polite">
-          <div className="result-topline">
-            <div><span className="step-number">02</span><p className="kicker">SEARCH OUTPUT</p></div>
-            <span className={`proof-badge ${result?.optimality_proven ? "verified" : "pending"}`}>
-              <span />{proofLabel}
-            </span>
-          </div>
-
-          {winningResult ? (
-            <>
-              <div className="victory-block">
-                <div className="hp-orbit">
-                  <span className="orbit-label">HP LOSS</span>
-                  <strong>{winningResult.hpLoss}</strong>
-                  <span>/ {character === "silent" ? 70 : 80}</span>
-                </div>
-                <div className="victory-copy">
-                  <p>VICTORY</p>
-                  <h2>{winningResult.hpLoss === 0 ? "No damage taken." : `${winningResult.finalHp} HP remains.`}</h2>
-                  <span>Computed locally by the Rust core running as WebAssembly.</span>
-                </div>
-              </div>
-
-              <div className="metric-strip">
-                <div><span>FINAL HP</span><strong>{winningResult.finalHp}</strong></div>
-                <div><span>ENEMY TURNS</span><strong>{winningResult.turns}</strong></div>
-                <div><span>ACTIONS</span><strong>{winningResult.actions}</strong></div>
-                <div><span>STATES</span><strong>{shortNumber(winningResult.explored)}</strong></div>
-                <div><span>RUNTIME</span><strong>{winningResult.runtime < 0.01 ? `${(winningResult.runtime * 1000).toFixed(1)}ms` : `${winningResult.runtime.toFixed(3)}s`}</strong></div>
-              </div>
-
-              <div className="draw-section">
-                <div className="section-title"><h3>Opening draw</h3><span>shuffle stream · counter 11</span></div>
-                <div className="card-hand">
-                  {winningResult.opening.map((card, index) => (
-                    <div className={`mini-card ${card.toLowerCase()}`} key={`${card}-${index}`}>
-                      <span className="energy">{cardCost(card)}</span>
-                      <strong>{card}</strong>
-                      <small>{cardEffect(card)}</small>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="trace-section">
-                <div className="section-title"><h3>Optimal line</h3><span>full Rust trace · state hashes shortened</span></div>
-                <div className="trace-list wasm-trace">
-                  {trace.map((item, index) => (
-                    <div className="trace-row" key={`${item.turn}-${index}`}>
-                      <span className="turn-label">T{item.turn}</span>
-                      <span className="trace-node" />
-                      <strong>{item.action}</strong>
-                      <span>{item.detail}</span>
-                      <code>{item.hash}</code>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="custom-state">
-              <span className="custom-glyph">{solveError ? "!" : isSolving ? "⟳" : "↳"}</span>
-              <p className="kicker">{solveError ? "SIMULATOR ERROR" : result ? "SEARCH RESULT" : "CLIENT RUNTIME"}</p>
-              <h2>
-                {solveError
-                  ? <>The browser solver<br />could not start.</>
-                  : isSolving
-                    ? <>Exploring the<br />combat graph…</>
-                    : result?.complete
-                      ? <>No winning line<br />exists.</>
-                      : result
-                        ? <>The search limit<br />was reached.</>
-                        : <>Rust is ready<br />in your browser.</>}
-              </h2>
-              <p>
-                {solveError
-                  ? solveError
-                  : isSolving
-                    ? "The WebAssembly worker is evaluating legal actions without blocking the interface."
-                    : result
-                      ? `${shortNumber(result.explored_states)} states explored · ${result.termination_reason.replaceAll("_", " ")}. Incomplete searches never claim optimality.`
-                      : "Press Run Optimal Search to execute the real Rust combat engine locally. No combat data is sent to a server."}
-              </p>
-              <button type="button" onClick={solve} disabled={isSolving}>{isSolving ? "SEARCHING" : solveError ? "TRY AGAIN" : "RUN RUST / WASM SEARCH"}</button>
-            </div>
-          )}
+          <dl className="catalog-summary">
+            <div><dt>Catalog</dt><dd>v0.107.1</dd></div>
+            <div><dt>Policy</dt><dd>Minimize HP loss</dd></div>
+            <div><dt>Runtime</dt><dd>Local browser</dd></div>
+          </dl>
         </section>
 
-        <aside className="deck-panel">
-          <div className="panel-heading compact">
-            <span className="step-number">03</span>
-            <div><p className="kicker">LOADOUT</p><h2>Starter deck</h2></div>
-          </div>
-          <div className="deck-list">
-            {deck.map(([name, type, quantity]) => (
-              <div className="deck-row" key={String(name)}>
-                <span className={`deck-type ${String(type).toLowerCase()}`}>{String(type).slice(0, 1)}</span>
-                <div><strong>{name}</strong><small>{type} · base</small></div>
-                <span>×{quantity}</span>
-              </div>
-            ))}
-          </div>
-          <div className="relic-row">
-            <span className="relic-glyph">◇</span>
-            <div><small>RELIC</small><strong>{character === "silent" ? "Ring of the Snake" : "Burning Blood"}</strong></div>
-          </div>
-          <div className="policy-card">
-            <span>POLICY · RUST/WASM</span>
-            <strong>Minimize HP loss</strong>
-            <p>Graph search orders states by monotonic damage taken. Tie-breakers never redefine the optimum.</p>
-          </div>
-          <div className="rng-readout">
-            <div><span>RUN SEED</span><strong>{seed}</strong></div>
-            <div><span>PROFILE</span><code>xoshiro_v1</code></div>
-            <div><span>CATALOG</span><code>7a27dc78…</code></div>
-          </div>
-        </aside>
-      </section>
+        <section className="workspace" id="workspace" aria-label="Combat solver workspace">
+          <aside className="setup-panel">
+            <div className="panel-heading">
+              <div><span className="step-number">1</span><h2>Combat setup</h2></div>
+              <button className="copy-button" type="button" onClick={copySetup}>
+                {copied ? "Copied" : "Copy JSON"}
+              </button>
+            </div>
 
-      <section className="method" id="method">
-        <div><p className="eyebrow">WHY IT REPLAYS</p><h2>One seed.<br />Named streams.<br />Zero ambiguity.</h2></div>
-        <div className="method-grid">
-          <article><span>01</span><h3>Freeze the inputs</h3><p>Catalog identity, deck instances, enemy HP, relics, and ascension are captured in one strict setup.</p></article>
-          <article><span>02</span><h3>Branch safely</h3><p>Every candidate state owns its RNG counters, so search order cannot alter the next draw or move.</p></article>
-          <article><span>03</span><h3>Prove the optimum</h3><p>The first victory removed from the loss-ordered frontier is the minimum-HP-loss solution.</p></article>
-        </div>
-      </section>
+            <fieldset className="control-group">
+              <legend>Character</legend>
+              <div className="character-options">
+                {(Object.keys(characters) as CharacterId[]).map((id) => {
+                  const item = characters[id];
+                  return (
+                    <button
+                      type="button"
+                      key={id}
+                      className={character === id ? "active" : ""}
+                      aria-pressed={character === id}
+                      onClick={() => setCharacter(id)}
+                    >
+                      <span className="character-art"><img src={item.asset} alt="" /></span>
+                      <span><strong>{item.name}</strong><small>{item.hp} HP · {item.description}</small></span>
+                      <span className="selection-mark" />
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <fieldset className="control-group">
+              <legend>Enemy</legend>
+              <div className="enemy-list">
+                {(Object.keys(enemies) as EnemyId[]).map((id) => {
+                  const item = enemies[id];
+                  return (
+                    <button
+                      type="button"
+                      key={id}
+                      className={enemy === id ? "active" : ""}
+                      aria-pressed={enemy === id}
+                      onClick={() => setEnemy(id)}
+                    >
+                      <span className="enemy-art"><img src={item.asset} alt="" /></span>
+                      <span className="enemy-name"><strong>{item.name}</strong><small>{item.hp[0]}–{item.hp[1]} HP · {item.intent}</small></span>
+                      <span className="selection-mark" />
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <div className="parameter-grid">
+              <div className="field-control">
+                <label htmlFor="seed">Run seed</label>
+                <input
+                  id="seed"
+                  type="number"
+                  min="0"
+                  max="4294967295"
+                  value={seed}
+                  onChange={(event) => setSeed(Math.min(4_294_967_295, Math.max(0, Number(event.target.value))))}
+                />
+              </div>
+              <div className="field-control">
+                <label htmlFor="ascension">Ascension</label>
+                <select id="ascension" value={ascension} onChange={(event) => setAscension(Number(event.target.value))}>
+                  {Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>A{value}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="seed-presets" aria-label="Seed presets">
+              <span>Presets</span>
+              {quickSeeds.map((value) => (
+                <button type="button" key={value} className={seed === value ? "active" : ""} onClick={() => setSeed(value)}>{value}</button>
+              ))}
+            </div>
+
+            <section className="loadout" aria-labelledby="loadout-title">
+              <div className="section-heading">
+                <div><h3 id="loadout-title">Starter loadout</h3><span>{decks[character].reduce((total, card) => total + card.quantity, 0)} cards</span></div>
+                <div className="relic-summary">
+                  <img
+                    src={character === "silent" ? "./spire-codex/relics/ring_of_the_snake.webp" : "./spire-codex/relics/burning_blood.webp"}
+                    alt=""
+                  />
+                  <span>{character === "silent" ? "Ring of the Snake" : "Burning Blood"}</span>
+                </div>
+              </div>
+              <div className="deck-list">
+                {decks[character].map((card) => (
+                  <div className="deck-row" key={card.name}>
+                    <img src={card.asset} alt="" />
+                    <span><strong>{card.name}</strong><small>{card.type}</small></span>
+                    <b>×{card.quantity}</b>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <button className="solve-button" type="button" onClick={solve} disabled={isSolving}>
+              <span>{isSolving ? "Searching…" : "Run optimal search"}</span>
+              <span aria-hidden="true">→</span>
+            </button>
+            <p className="privacy-note">Runs locally in your browser. No combat data is uploaded.</p>
+          </aside>
+
+          <section className="result-panel" key={runKey} aria-live="polite">
+            <div className="result-header">
+              <div><span className="step-number">2</span><h2>Results</h2></div>
+              <span className={`proof-badge ${result?.optimality_proven ? "verified" : "pending"}`}>
+                <span />{proofLabel}
+              </span>
+            </div>
+
+            {winningResult ? (
+              <>
+                <section className="result-summary">
+                  <div className="matchup-art" aria-hidden="true">
+                    <img className="result-character" src={selectedCharacter.asset} alt="" />
+                    <span>vs</span>
+                    <img className="result-enemy" src={selectedEnemy.asset} alt="" />
+                  </div>
+                  <div className="result-copy">
+                    <span className="success-label">Victory · optimum proven</span>
+                    <h3>{winningResult.hpLoss === 0 ? "No HP lost" : `${winningResult.hpLoss} HP lost`}</h3>
+                    <p>{selectedCharacter.name} finishes with <strong>{winningResult.finalHp} HP</strong>.</p>
+                  </div>
+                </section>
+
+                <div className="metric-strip">
+                  <div><span>Final HP</span><strong>{winningResult.finalHp}</strong></div>
+                  <div><span>Enemy turns</span><strong>{winningResult.turns}</strong></div>
+                  <div><span>Actions</span><strong>{winningResult.actions}</strong></div>
+                  <div><span>States</span><strong>{shortNumber(winningResult.explored)}</strong></div>
+                  <div><span>Runtime</span><strong>{winningResult.runtime < 0.01 ? `${(winningResult.runtime * 1000).toFixed(1)}ms` : `${winningResult.runtime.toFixed(3)}s`}</strong></div>
+                </div>
+
+                <section className="draw-section">
+                  <div className="section-title"><h3>Opening hand</h3><span>Seed {seed} · shuffle stream</span></div>
+                  <div className="card-hand">
+                    {winningResult.opening.map((card, index) => (
+                      <div className="mini-card" key={`${card}-${index}`}>
+                        <img src={cardAsset(card, character)} alt={`${card} card`} />
+                        <span>{card}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="trace-section">
+                  <div className="section-title"><h3>Optimal action sequence</h3><span>{trace.length} actions · hashes shortened</span></div>
+                  <div className="trace-list">
+                    {trace.map((item, index) => (
+                      <div className="trace-row" key={`${item.turn}-${index}`}>
+                        <span className="turn-label">T{item.turn}</span>
+                        <strong>{item.action}</strong>
+                        <span>{item.detail}</span>
+                        <code>{item.hash}</code>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-matchup" aria-hidden="true">
+                  <img src={selectedCharacter.asset} alt="" />
+                  <span>→</span>
+                  <img src={selectedEnemy.asset} alt="" />
+                </div>
+                <span className="empty-kicker">{solveError ? "Solver error" : isSolving ? "Search in progress" : result ? "Search complete" : "Current matchup"}</span>
+                <h3>
+                  {solveError
+                    ? "The solver could not start"
+                    : isSolving
+                      ? "Exploring the combat graph…"
+                      : result?.complete
+                        ? "No winning line exists"
+                        : result
+                          ? "The search limit was reached"
+                          : `${selectedCharacter.name} vs. ${selectedEnemy.name}`}
+                </h3>
+                <p>
+                  {solveError
+                    ? solveError
+                    : isSolving
+                      ? "Evaluating legal actions in a background Web Worker."
+                      : result
+                        ? `${shortNumber(result.explored_states)} states explored · ${result.termination_reason.replaceAll("_", " ")}.`
+                        : `Seed ${seed} · Ascension ${ascension} · ${selectedEnemy.hp[0]}–${selectedEnemy.hp[1]} base HP`}
+                </p>
+                <button type="button" onClick={solve} disabled={isSolving}>{isSolving ? "Searching…" : solveError ? "Try again" : "Run search"}</button>
+              </div>
+            )}
+          </section>
+        </section>
+
+        <section className="method" id="method">
+          <div className="method-heading">
+            <p className="eyebrow">Method</p>
+            <h2>How the solver works</h2>
+            <p>The simulator is deterministic, catalog-pinned, and runs entirely in the browser.</p>
+          </div>
+          <div className="method-grid">
+            <article><span>01</span><h3>Freeze the inputs</h3><p>Catalog identity, deck, enemy HP, relics, seed, and ascension are captured in a strict setup.</p></article>
+            <article><span>02</span><h3>Explore safely</h3><p>Every branch owns its state and RNG counters, so search order cannot alter future draws.</p></article>
+            <article><span>03</span><h3>Prove the result</h3><p>The first victory removed from the loss-ordered frontier has the minimum possible HP loss.</p></article>
+          </div>
+        </section>
+      </main>
 
       <footer>
-        <div><span className="brand-mark">S2</span><span>Isolated combat. Reproducible by construction.</span></div>
-        <span>CLIENT-SIDE RUST/WASM · OFFLINE CATALOG · v0.2</span>
+        <span>Rusty Spire · deterministic isolated combat simulator</span>
+        <span>Game artwork sourced from <a href="https://spire-codex.com/developers" target="_blank" rel="noreferrer">Spire Codex ↗</a></span>
       </footer>
-    </main>
+    </div>
   );
 }
