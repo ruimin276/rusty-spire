@@ -7,7 +7,7 @@ const root = new URL("../", import.meta.url);
 
 test("executes the Rust optimal search through the browser ABI", async () => {
   const [wasmBytes, fixture] = await Promise.all([
-    readFile(new URL("dist/sls2_combat.wasm", root)),
+    readFile(new URL("dist/rusty_spire_wasm.wasm", root)),
     readFile(new URL("../fixtures/combat_setup_v1/silent_nibbit_seed_1.json", root), "utf8"),
   ]);
   const { instance } = await WebAssembly.instantiate(wasmBytes, {

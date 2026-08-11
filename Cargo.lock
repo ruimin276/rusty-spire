@@ -264,6 +264,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusty-spire-cli"
+version = "0.2.0"
+dependencies = [
+ "clap",
+ "rusty-spire-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "rusty-spire-core"
+version = "0.2.0"
+dependencies = [
+ "blake3",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
+name = "rusty-spire-wasm"
+version = "0.2.0"
+dependencies = [
+ "rusty-spire-core",
+ "serde_json",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -322,35 +351,6 @@ name = "shlex"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
-
-[[package]]
-name = "sls2-combat-cli"
-version = "0.2.0"
-dependencies = [
- "clap",
- "serde",
- "serde_json",
- "sls2-combat-core",
-]
-
-[[package]]
-name = "sls2-combat-core"
-version = "0.2.0"
-dependencies = [
- "blake3",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
-]
-
-[[package]]
-name = "sls2-combat-wasm"
-version = "0.2.0"
-dependencies = [
- "serde_json",
- "sls2-combat-core",
-]
 
 [[package]]
 name = "strsim"

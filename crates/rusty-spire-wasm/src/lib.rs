@@ -2,8 +2,8 @@
 mod browser {
     use std::slice;
 
+    use rusty_spire_core::{CombatCatalog, CombatSetupV1, SolveLimits, initialize, solve};
     use serde_json::{Value, json};
-    use sls2_combat_core::{CombatCatalog, CombatSetupV1, SolveLimits, initialize, solve};
 
     const CATALOG_JSON: &[u8] = include_bytes!("../../../catalogs/combat_v0.107.1.json");
 

@@ -10,7 +10,7 @@ fn root() -> PathBuf {
 }
 
 fn binary() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_sls2-combat"))
+    Command::new(env!("CARGO_BIN_EXE_rusty-spire"))
 }
 
 fn fixture(name: &str) -> PathBuf {
@@ -36,7 +36,7 @@ fn temporary_json(name: &str, value: &Value) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let path = std::env::temp_dir().join(format!("sls2-combat-{name}-{unique}.json"));
+    let path = std::env::temp_dir().join(format!("rusty-spire-{name}-{unique}.json"));
     fs::write(&path, serde_json::to_vec(value).unwrap()).unwrap();
     path
 }

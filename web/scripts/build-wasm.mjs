@@ -9,7 +9,7 @@ const repositoryRoot = resolve(webRoot, "..");
 
 const build = spawnSync(
   "cargo",
-  ["build", "--release", "--target", "wasm32-unknown-unknown", "-p", "sls2-combat-wasm"],
+  ["build", "--release", "--target", "wasm32-unknown-unknown", "-p", "rusty-spire-wasm"],
   { cwd: repositoryRoot, stdio: "inherit" },
 );
 
@@ -18,8 +18,8 @@ if (build.status !== 0) process.exit(build.status ?? 1);
 
 const source = resolve(
   repositoryRoot,
-  "target/wasm32-unknown-unknown/release/sls2_combat_wasm.wasm",
+  "target/wasm32-unknown-unknown/release/rusty_spire_wasm.wasm",
 );
 const destinationDirectory = resolve(webRoot, "public");
 await mkdir(destinationDirectory, { recursive: true });
-await copyFile(source, resolve(destinationDirectory, "sls2_combat.wasm"));
+await copyFile(source, resolve(destinationDirectory, "rusty_spire_wasm.wasm"));

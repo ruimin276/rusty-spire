@@ -1,7 +1,7 @@
 use std::time::Instant;
 
+use rusty_spire_core::{CombatCatalog, CombatSetupV1, SolveLimits, initialize, solve};
 use serde_json::{Value, json};
-use sls2_combat_core::{CombatCatalog, CombatSetupV1, SolveLimits, initialize, solve};
 
 fn catalog() -> CombatCatalog {
     CombatCatalog::from_json(include_bytes!("../../../catalogs/combat_v0.107.1.json")).unwrap()

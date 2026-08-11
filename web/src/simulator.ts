@@ -89,7 +89,7 @@ export function solveCombat(
     maxStates,
     maxTurns,
     timeoutMilliseconds,
-    wasmUrl: new URL("sls2_combat.wasm", document.baseURI).href,
+    wasmUrl: new URL("rusty_spire_wasm.wasm", document.baseURI).href,
   });
   return request;
 }

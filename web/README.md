@@ -1,7 +1,7 @@
 # SLS2 Combat Lab static site
 
 This is a portable static React interface for the isolated combat simulator.
-The same `sls2-combat-core` initialization and optimal search used by the CLI is
+The same `rusty-spire-core` initialization and optimal search used by the CLI is
 compiled to WebAssembly and executed in a client-side Web Worker. The host only
 serves static files; combat inputs and results remain in the visitor's browser.
 
@@ -23,7 +23,7 @@ static host, including a personal server, GitHub Pages, Netlify, Cloudflare
 Pages, or an object-storage website. All application asset URLs are relative,
 so the site also works under a subdirectory.
 
-`npm run build` first compiles `sls2-combat-wasm`, copies the resulting module
+`npm run build` first compiles `rusty-spire-wasm`, copies the resulting module
 into the static assets, then builds the React application. Search has explicit
 state, turn, and wall-clock limits. Incomplete searches remain labeled as
 incomplete and never claim optimality.
