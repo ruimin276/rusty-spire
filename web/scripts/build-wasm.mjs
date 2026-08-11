@@ -3,6 +3,8 @@ import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { writeWasmSourceFingerprint } from "./wasm-fingerprint.mjs";
+
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const webRoot = resolve(scriptDirectory, "..");
 const repositoryRoot = resolve(webRoot, "..");
@@ -23,3 +25,4 @@ const source = resolve(
 const destinationDirectory = resolve(webRoot, "public");
 await mkdir(destinationDirectory, { recursive: true });
 await copyFile(source, resolve(destinationDirectory, "rusty_spire_wasm.wasm"));
+await writeWasmSourceFingerprint();

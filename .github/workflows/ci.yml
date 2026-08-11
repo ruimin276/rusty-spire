@@ -275,6 +275,16 @@ jobs:
         working-directory: web
         run: npm ci
 
+      - name: Verify committed WASM source fingerprint
+        working-directory: web
+        run: npm run check:wasm-fingerprint
+
+      - name: Smoke-test committed WASM
+        working-directory: web
+        env:
+          RUSTY_SPIRE_WASM_PATH: public/rusty_spire_wasm.wasm
+        run: node --test tests/wasm-solver.test.mjs
+
       - name: Build production website
         working-directory: web
         run: npm run build
@@ -286,5 +296,5 @@ jobs:
           find web/dist/assets -maxdepth 1 -type f -name '*.js' -print -quit | grep -q .
           find web/dist/assets -maxdepth 1 -type f -name '*.css' -print -quit | grep -q .
 
-      - name: Verify committed WASM is current
-        run: git diff --exit-code -- web/public/rusty_spire_wasm.wasm
+      - name: Verify generated fingerprint is current
+        run: git diff --exit-code -- web/public/rusty_spire_wasm.sources.sha256

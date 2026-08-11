@@ -132,10 +132,18 @@ target/release/rusty-spire --version
 
 cd web
 npm ci
+npm run check:wasm-fingerprint
+RUSTY_SPIRE_WASM_PATH=public/rusty_spire_wasm.wasm \
+  node --test tests/wasm-solver.test.mjs
 npm run build
 cd ..
 
 test -f web/dist/index.html
 test -f web/dist/rusty_spire_wasm.wasm
-git diff --exit-code -- web/public/rusty_spire_wasm.wasm
+git diff --exit-code -- web/public/rusty_spire_wasm.sources.sha256
 ```
+
+Rust can emit different raw WebAssembly bytes on different host architectures.
+The portable source fingerprint covers every Rust, catalog, lockfile, and build
+script input to the module, while the committed module is smoke-tested directly
+before the current platform rebuilds it.
