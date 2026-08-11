@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
-use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
 use crate::catalog::CombatCatalog;
+use crate::clock::SearchTimer;
 use crate::policy::{CombatPolicy, MinimizeHpLoss, PolicyKind};
 use crate::setup::InitializedCombat;
 use crate::simulator::{Simulator, SimulatorError};
@@ -167,7 +167,7 @@ fn solve_internal(
     let policy = MinimizeHpLoss;
     debug_assert_eq!(policy.kind(), combat.policy);
     let simulator = Simulator::new(catalog);
-    let started = Instant::now();
+    let started = SearchTimer::start();
     let initial = combat.state.clone();
     let starting_hp = initial.player.hp;
     let initial_hash = simulator.state_hash(&initial)?;
@@ -187,7 +187,7 @@ fn solve_internal(
     let mut turn_limit_hit = false;
 
     while let Some(item) = frontier.pop() {
-        let elapsed = started.elapsed().as_secs_f64();
+        let elapsed = started.elapsed_seconds();
         if elapsed > limits.timeout_seconds {
             return Ok(incomplete(
                 catalog, combat, explored, cache_hits, elapsed, "timeout",
@@ -273,7 +273,7 @@ fn solve_internal(
             combat,
             explored,
             cache_hits,
-            started.elapsed().as_secs_f64(),
+            started.elapsed_seconds(),
             "max_turns",
         ));
     }
@@ -291,7 +291,7 @@ fn solve_internal(
         action_ids: Vec::new(),
         explored_states: explored,
         cache_hits,
-        runtime_seconds: started.elapsed().as_secs_f64(),
+        runtime_seconds: started.elapsed_seconds(),
         termination_reason: "no_winning_line".into(),
     })
 }

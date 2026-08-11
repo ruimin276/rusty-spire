@@ -1,4 +1,5 @@
 mod catalog;
+mod clock;
 mod policy;
 mod rng;
 mod search;

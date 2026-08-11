@@ -34,6 +34,7 @@ RESPONSES = {
             "type": "Attack",
             "rarity": "Basic",
             "damage": 6,
+            "upgrade": {"damage": "+3"},
         }
     ],
     "/api/characters": [
@@ -65,8 +66,18 @@ RESPONSES = {
             "id": "NIBBIT",
             "name": "Nibbit",
             "type": "Normal",
-            "moves": [],
             "min_hp": 42,
+            "max_hp": 46,
+            "min_hp_ascension": 44,
+            "max_hp_ascension": 48,
+            "moves": [
+                {
+                    "id": "BUTT",
+                    "damage": {"normal": 12, "ascension": 13},
+                    "block": None,
+                    "powers": None,
+                }
+            ],
         }
     ],
     "/api/powers": [
@@ -91,7 +102,25 @@ RESPONSES = {
             "name": "Ascension 0",
             "level": 0,
             "description": "Base difficulty.",
-        }
+        },
+        {
+            "id": "LEVEL_08",
+            "name": "Tough Enemies",
+            "level": 8,
+            "description": "All enemies are harder to kill.",
+        },
+        {
+            "id": "LEVEL_09",
+            "name": "Deadly Enemies",
+            "level": 9,
+            "description": "All enemies have deadlier attacks.",
+        },
+        {
+            "id": "LEVEL_10",
+            "name": "Double Boss",
+            "level": 10,
+            "description": "Fight two bosses.",
+        },
     ],
 }
 
@@ -287,7 +316,12 @@ class DataSyncTests(unittest.TestCase):
                 }
             },
             "characters": {"CHARACTER.SILENT": {"max_energy": 3}},
-            "cards": {"CARD.STRIKE_SILENT": {"cost": 1}},
+            "cards": {
+                "CARD.STRIKE_SILENT": {
+                    "cost": 1,
+                    "damage": {"base": 6, "upgraded": 9},
+                }
+            },
             "relics": {"RELIC.RING_OF_THE_SNAKE": {"combat_effect": {"type": "inert"}}},
             "powers": {
                 "POWER.WEAK_POWER": {
@@ -300,10 +334,21 @@ class DataSyncTests(unittest.TestCase):
                     "hp": {"min": 42, "max": 46},
                     "ascension_hp": {"min": 44, "max": 48},
                     "opening_move": "BUTT_MOVE",
-                    "moves": {"BUTT_MOVE": {"next_move": "BUTT_MOVE"}},
+                    "moves": {
+                        "BUTT_MOVE": {
+                            "damage": {"base": 12, "ascension": 13},
+                            "next_move": "BUTT_MOVE",
+                        }
+                    },
                 }
             },
             "encounters": {"ENCOUNTER.NIBBITS_WEAK": {"enemies": ["MONSTER.NIBBIT"]}},
+            "ascensions": {
+                "max_supported_level": 10,
+                "monster_hp_level": 8,
+                "tough_enemies_level": 8,
+                "deadly_enemies_level": 9,
+            },
             "combat_modifiers": {
                 "weak": {"numerator": 3, "denominator": 4},
                 "shrink": {"numerator": 7, "denominator": 10},
@@ -326,6 +371,20 @@ class DataSyncTests(unittest.TestCase):
             second_result = build_catalog(snapshot, reviewed_path, second)
             self.assertEqual(first.read_bytes(), second.read_bytes())
             self.assertEqual(first_result["sha256"], second_result["sha256"])
+
+            normalized_cards = snapshot / "normalized" / "cards.json"
+            normalized = json.loads(normalized_cards.read_text(encoding="utf-8"))
+            normalized[0]["cost"] = 999
+            normalized_cards.write_text(json.dumps(normalized), encoding="utf-8")
+            rebuilt = root / "rebuilt-from-raw.json"
+            build_catalog(snapshot, reviewed_path, rebuilt)
+            self.assertEqual(first.read_bytes(), rebuilt.read_bytes())
+
+            reviewed["cards"]["CARD.STRIKE_SILENT"]["cost"] = 2
+            reviewed_path.write_text(json.dumps(reviewed), encoding="utf-8")
+            with self.assertRaisesRegex(CatalogBuildError, "does not match snapshot"):
+                build_catalog(snapshot, reviewed_path, root / "mismatch.json")
+            reviewed["cards"]["CARD.STRIKE_SILENT"]["cost"] = 1
 
             reviewed["cards"]["CARD.NOT_IN_SNAPSHOT"] = {"cost": 1}
             reviewed_path.write_text(json.dumps(reviewed), encoding="utf-8")

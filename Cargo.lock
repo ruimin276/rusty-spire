@@ -345,6 +345,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "sls2-combat-wasm"
+version = "0.2.0"
+dependencies = [
+ "serde_json",
+ "sls2-combat-core",
+]
+
+[[package]]
 name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

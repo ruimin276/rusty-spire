@@ -12,6 +12,13 @@ The library exposes `initialize`, `Simulator::legal_actions`,
 clones its input state. RNG counters are part of that state, so branch
 exploration cannot mutate another branch.
 
+The `sls2-combat-wasm` crate exposes the same `initialize` and `solve` path to a
+static browser application through a minimal JSON ABI. The reviewed catalog is
+embedded at compile time. Browser searches run in a Web Worker and import only
+a monotonic clock from JavaScript; RNG, state transitions, hashing, policy, and
+search all remain Rust code. The WebAssembly result preserves the normal
+resource-limit and `optimality_proven` semantics.
+
 ## `CombatSetupV1`
 
 The strict JSON schema is represented in

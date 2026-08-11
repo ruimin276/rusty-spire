@@ -2,6 +2,7 @@
 members = [
   "crates/sls2-combat-core",
   "crates/sls2-combat-cli",
+  "crates/sls2-combat-wasm",
 ]
 resolver = "2"
 

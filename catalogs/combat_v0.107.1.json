@@ -2,7 +2,7 @@
   "ascensions": {
     "deadly_enemies_level": 9,
     "max_supported_level": 10,
-    "monster_hp_level": 7,
+    "monster_hp_level": 8,
     "tough_enemies_level": 8
   },
   "cards": {

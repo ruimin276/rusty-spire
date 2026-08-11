@@ -18,6 +18,7 @@ COLLECTION_PREFIXES = {
     "monsters": "MONSTER.",
     "encounters": "ENCOUNTER.",
     "powers": "POWER.",
+    "ascensions": "ASCENSION.",
 }
 
 
@@ -35,24 +36,278 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _source_ids(snapshot: Path, collection: str) -> set[str]:
-    path = snapshot / "normalized" / f"{collection}.json"
+def _source_records(snapshot: Path, collection: str) -> dict[str, dict[str, Any]]:
+    path = snapshot / "raw" / f"{collection}.json"
     try:
         values = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise CatalogBuildError(f"cannot read normalized {collection}: {exc}") from exc
+        raise CatalogBuildError(f"cannot read raw {collection}: {exc}") from exc
     if not isinstance(values, list):
-        raise CatalogBuildError(f"normalized {collection} must be an array")
-    result = set()
+        raise CatalogBuildError(f"raw {collection} must be an array")
+    result = {}
     for value in values:
-        if not isinstance(value, dict) or not isinstance(value.get("model_id"), str):
-            raise CatalogBuildError(f"normalized {collection} has an invalid model_id")
-        if value["model_id"] in result:
+        if not isinstance(value, dict) or not isinstance(value.get("id"), str):
+            raise CatalogBuildError(f"raw {collection} has an invalid id")
+        model_id = f"{COLLECTION_PREFIXES[collection]}{value['id']}"
+        if model_id in result:
             raise CatalogBuildError(
-                f"normalized {collection} contains duplicate {value['model_id']}"
+                f"raw {collection} contains duplicate {model_id}"
             )
-        result.add(value["model_id"])
+        result[model_id] = value
     return result
+
+
+def _require_equal(entity: str, field: str, reviewed: Any, source: Any) -> None:
+    if reviewed != source:
+        raise CatalogBuildError(
+            f"reviewed {entity} {field}={reviewed!r} does not match snapshot {source!r}"
+        )
+
+
+def _upgrade_delta(record: dict[str, Any], field: str, entity: str) -> int:
+    upgrade = record.get("upgrade")
+    value = upgrade.get(field) if isinstance(upgrade, dict) else None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            pass
+    raise CatalogBuildError(f"snapshot {entity} has no numeric {field} upgrade")
+
+
+def _validate_card_values(
+    catalog: dict[str, Any], records: dict[str, dict[str, dict[str, Any]]]
+) -> None:
+    powers = catalog["powers"]
+    for model_id, definition in catalog["cards"].items():
+        source = records["cards"][model_id]
+        _require_equal(model_id, "cost", definition.get("cost"), source.get("cost"))
+        for field in ("damage", "block"):
+            reviewed = definition.get(field)
+            source_base = source.get(field)
+            if reviewed is None:
+                if source_base is not None:
+                    raise CatalogBuildError(
+                        f"reviewed {model_id} omits snapshot {field}={source_base!r}"
+                    )
+                continue
+            if not isinstance(reviewed, dict) or not isinstance(source_base, int):
+                raise CatalogBuildError(f"reviewed {model_id} has invalid {field}")
+            _require_equal(model_id, f"{field}.base", reviewed.get("base"), source_base)
+            expected_upgrade = source_base + _upgrade_delta(source, field, model_id)
+            _require_equal(
+                model_id,
+                f"{field}.upgraded",
+                reviewed.get("upgraded"),
+                expected_upgrade,
+            )
+
+        reviewed_keywords = sorted(definition.get("keywords", []))
+        source_keywords = sorted(source.get("keywords") or [])
+        _require_equal(model_id, "keywords", reviewed_keywords, source_keywords)
+
+        reviewed_power = definition.get("power")
+        source_powers = source.get("powers_applied") or []
+        if reviewed_power is None:
+            if source_powers:
+                raise CatalogBuildError(
+                    f"reviewed {model_id} omits snapshot powers_applied"
+                )
+            continue
+        if not isinstance(reviewed_power, dict):
+            raise CatalogBuildError(f"reviewed {model_id} has invalid power")
+        power_definition = powers.get(reviewed_power.get("id"))
+        if not isinstance(power_definition, dict):
+            raise CatalogBuildError(f"reviewed {model_id} references an unknown power")
+        source_power_id = power_definition.get("source_id")
+        source_power = next(
+            (
+                power
+                for power in source_powers
+                if isinstance(power, dict)
+                and str(power.get("power_key", power.get("power_id", ""))).upper()
+                == source_power_id
+            ),
+            None,
+        )
+        if source_power is None:
+            raise CatalogBuildError(
+                f"snapshot {model_id} has no power {source_power_id}"
+            )
+        amount = reviewed_power.get("amount")
+        source_amount = source_power.get("amount")
+        if not isinstance(amount, dict) or not isinstance(source_amount, int):
+            raise CatalogBuildError(f"reviewed {model_id} has invalid power amount")
+        _require_equal(model_id, "power.amount.base", amount.get("base"), source_amount)
+        upgrade_field = str(source_power_id).lower()
+        expected_upgrade = source_amount + _upgrade_delta(
+            source, upgrade_field, model_id
+        )
+        _require_equal(
+            model_id,
+            "power.amount.upgraded",
+            amount.get("upgraded"),
+            expected_upgrade,
+        )
+
+
+def _validate_character_values(
+    catalog: dict[str, Any], records: dict[str, dict[str, dict[str, Any]]]
+) -> None:
+    for model_id, definition in catalog["characters"].items():
+        _require_equal(
+            model_id,
+            "max_energy",
+            definition.get("max_energy"),
+            records["characters"][model_id].get("max_energy"),
+        )
+
+
+def _validate_monster_values(
+    catalog: dict[str, Any], records: dict[str, dict[str, dict[str, Any]]]
+) -> None:
+    for model_id, definition in catalog["monsters"].items():
+        source = records["monsters"][model_id]
+        for reviewed_field, source_min, source_max in (
+            ("hp", "min_hp", "max_hp"),
+            ("ascension_hp", "min_hp_ascension", "max_hp_ascension"),
+        ):
+            reviewed_range = definition.get(reviewed_field)
+            if not isinstance(reviewed_range, dict):
+                raise CatalogBuildError(
+                    f"reviewed {model_id} has invalid {reviewed_field}"
+                )
+            _require_equal(
+                model_id, f"{reviewed_field}.min", reviewed_range.get("min"), source.get(source_min)
+            )
+            _require_equal(
+                model_id, f"{reviewed_field}.max", reviewed_range.get("max"), source.get(source_max)
+            )
+
+        source_moves = {
+            f"{movement['id']}_MOVE": movement
+            for movement in source.get("moves", [])
+            if isinstance(movement, dict) and isinstance(movement.get("id"), str)
+        }
+        for move_id, movement in definition.get("moves", {}).items():
+            source_move = source_moves.get(move_id)
+            if source_move is None:
+                raise CatalogBuildError(f"snapshot {model_id} has no move {move_id}")
+            source_damage = source_move.get("damage")
+            reviewed_damage = movement.get("damage")
+            if source_damage is not None:
+                if not isinstance(reviewed_damage, dict) or not isinstance(source_damage, dict):
+                    raise CatalogBuildError(f"reviewed {model_id} {move_id} omits damage")
+                _require_equal(
+                    f"{model_id} {move_id}",
+                    "damage.base",
+                    reviewed_damage.get("base"),
+                    source_damage.get("normal"),
+                )
+                _require_equal(
+                    f"{model_id} {move_id}",
+                    "damage.ascension",
+                    reviewed_damage.get("ascension"),
+                    source_damage.get("ascension"),
+                )
+            elif reviewed_damage is not None:
+                raise CatalogBuildError(
+                    f"reviewed {model_id} {move_id} adds damage absent from snapshot"
+                )
+
+            source_block = source_move.get("block")
+            if source_block is not None:
+                reviewed_block = movement.get("block")
+                if not isinstance(reviewed_block, dict):
+                    raise CatalogBuildError(f"reviewed {model_id} {move_id} omits block")
+                _require_equal(
+                    f"{model_id} {move_id}",
+                    "block.base",
+                    reviewed_block.get("base"),
+                    source_block,
+                )
+
+            source_powers = source_move.get("powers") or []
+            if source_powers:
+                reviewed_power = movement.get("power")
+                if not isinstance(reviewed_power, dict) or len(source_powers) != 1:
+                    raise CatalogBuildError(f"reviewed {model_id} {move_id} omits power")
+                source_power = source_powers[0]
+                power_definition = catalog["powers"].get(reviewed_power.get("id"))
+                if not isinstance(power_definition, dict):
+                    raise CatalogBuildError(
+                        f"reviewed {model_id} {move_id} references an unknown power"
+                    )
+                _require_equal(
+                    f"{model_id} {move_id}",
+                    "power.id",
+                    power_definition.get("source_id"),
+                    source_power.get("power_id"),
+                )
+                _require_equal(
+                    f"{model_id} {move_id}",
+                    "power.amount.base",
+                    reviewed_power.get("amount", {}).get("base"),
+                    source_power.get("amount"),
+                )
+                _require_equal(
+                    f"{model_id} {move_id}",
+                    "power.target",
+                    reviewed_power.get("target"),
+                    source_power.get("target"),
+                )
+
+
+def _validate_encounter_values(
+    catalog: dict[str, Any], records: dict[str, dict[str, dict[str, Any]]]
+) -> None:
+    for model_id, definition in catalog["encounters"].items():
+        source_values = records["encounters"][model_id].get("monsters", [])
+        source_enemies = [
+            f"MONSTER.{value['id'] if isinstance(value, dict) else value}"
+            for value in source_values
+        ]
+        reviewed_enemies = definition.get("enemies", [])
+        collapsed_reviewed = [
+            value
+            for index, value in enumerate(reviewed_enemies)
+            if index == 0 or value != reviewed_enemies[index - 1]
+        ]
+        _require_equal(model_id, "enemies", collapsed_reviewed, source_enemies)
+
+
+def _validate_ascension_values(
+    catalog: dict[str, Any], records: dict[str, dict[str, dict[str, Any]]]
+) -> None:
+    rules = catalog.get("ascensions")
+    if not isinstance(rules, dict):
+        raise CatalogBuildError("reviewed catalog ascensions must be an object")
+    ascensions = list(records["ascensions"].values())
+    max_level = max((record.get("level", -1) for record in ascensions), default=-1)
+    _require_equal(
+        "ascensions", "max_supported_level", rules.get("max_supported_level"), max_level
+    )
+    tough_level = rules.get("tough_enemies_level")
+    deadly_level = rules.get("deadly_enemies_level")
+    monster_hp_level = rules.get("monster_hp_level")
+    _require_equal("ascensions", "monster_hp_level", monster_hp_level, tough_level)
+    by_level = {record.get("level"): record for record in ascensions}
+    if "tough" not in str(by_level.get(tough_level, {}).get("name", "")).lower():
+        raise CatalogBuildError("snapshot has no Tough Enemies ascension at the reviewed level")
+    if "deadly" not in str(by_level.get(deadly_level, {}).get("name", "")).lower():
+        raise CatalogBuildError("snapshot has no Deadly Enemies ascension at the reviewed level")
+
+
+def _validate_static_values(
+    catalog: dict[str, Any], records: dict[str, dict[str, dict[str, Any]]]
+) -> None:
+    _validate_card_values(catalog, records)
+    _validate_character_values(catalog, records)
+    _validate_monster_values(catalog, records)
+    _validate_encounter_values(catalog, records)
+    _validate_ascension_values(catalog, records)
 
 
 def build_catalog(snapshot: Path, reviewed: Path, output: Path) -> dict[str, Any]:
@@ -92,15 +347,15 @@ def build_catalog(snapshot: Path, reviewed: Path, output: Path) -> dict[str, Any
     if aggregate != manifest.get("content_sha256"):
         raise CatalogBuildError("snapshot aggregate content hash mismatch")
 
-    available = {
-        collection: _source_ids(snapshot, collection)
+    records = {
+        collection: _source_records(snapshot, collection)
         for collection in COLLECTION_PREFIXES
     }
     for collection in ("cards", "characters", "relics", "monsters", "encounters"):
         definitions = catalog.get(collection)
         if not isinstance(definitions, dict):
             raise CatalogBuildError(f"reviewed catalog {collection} must be an object")
-        missing = sorted(set(definitions) - available[collection])
+        missing = sorted(set(definitions) - records[collection].keys())
         if missing:
             raise CatalogBuildError(
                 f"reviewed {collection} IDs absent from snapshot: {', '.join(missing)}"
@@ -126,11 +381,13 @@ def build_catalog(snapshot: Path, reviewed: Path, output: Path) -> dict[str, Any
         ):
             raise CatalogBuildError(f"reviewed power {power_id} has no source_id")
         referenced_source_powers.add(f"POWER.{definition['source_id']}")
-    missing_powers = sorted(referenced_source_powers - available["powers"])
+    missing_powers = sorted(referenced_source_powers - records["powers"].keys())
     if missing_powers:
         raise CatalogBuildError(
             f"reviewed power IDs absent from snapshot: {', '.join(missing_powers)}"
         )
+
+    _validate_static_values(catalog, records)
 
     version = manifest.get("version_evidence")
     game_version = version.get("game_version") if isinstance(version, dict) else None
