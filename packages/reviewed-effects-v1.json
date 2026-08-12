@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "cards": {
+    "CARD.STRIKE_IRONCLAD": {"character": "CHARACTER.IRONCLAD", "type": "Attack", "effects": ["damage"]},
+    "CARD.DEFEND_IRONCLAD": {"character": "CHARACTER.IRONCLAD", "type": "Skill", "effects": ["block"]},
+    "CARD.BASH": {"character": "CHARACTER.IRONCLAD", "type": "Attack", "effects": ["damage", "power"]},
+    "CARD.IRON_WAVE": {"character": "CHARACTER.IRONCLAD", "type": "Attack", "effects": ["block", "damage"]},
+    "CARD.POMMEL_STRIKE": {"character": "CHARACTER.IRONCLAD", "type": "Attack", "effects": ["damage", "draw"]},
+    "CARD.STRIKE_SILENT": {"character": "CHARACTER.SILENT", "type": "Attack", "effects": ["damage"]},
+    "CARD.DEFEND_SILENT": {"character": "CHARACTER.SILENT", "type": "Skill", "effects": ["block"]},
+    "CARD.NEUTRALIZE": {"character": "CHARACTER.SILENT", "type": "Attack", "effects": ["damage", "power"]},
+    "CARD.SURVIVOR": {"character": "CHARACTER.SILENT", "type": "Skill", "effects": ["block", "discard"]},
+    "CARD.BACKFLIP": {"character": "CHARACTER.SILENT", "type": "Skill", "effects": ["block", "draw"]},
+    "CARD.ADRENALINE": {"character": "CHARACTER.SILENT", "type": "Skill", "effects": ["energy", "draw"]},
+    "CARD.ASCENDERS_BANE": {"character": null, "type": "Curse", "effects": []}
+  },
+  "characters": {
+    "CHARACTER.IRONCLAD": {
+      "name": "Ironclad",
+      "max_hp": 80,
+      "starter_deck": [
+        {"id": "CARD.STRIKE_IRONCLAD", "quantity": 5},
+        {"id": "CARD.DEFEND_IRONCLAD", "quantity": 4},
+        {"id": "CARD.BASH", "quantity": 1}
+      ],
+      "starter_relics": ["RELIC.BURNING_BLOOD"],
+      "asset": "spire-codex/characters/ironclad.webp"
+    },
+    "CHARACTER.SILENT": {
+      "name": "The Silent",
+      "max_hp": 70,
+      "starter_deck": [
+        {"id": "CARD.STRIKE_SILENT", "quantity": 5},
+        {"id": "CARD.DEFEND_SILENT", "quantity": 5},
+        {"id": "CARD.NEUTRALIZE", "quantity": 1},
+        {"id": "CARD.SURVIVOR", "quantity": 1}
+      ],
+      "starter_relics": ["RELIC.RING_OF_THE_SNAKE"],
+      "asset": "spire-codex/characters/silent.webp"
+    }
+  },
+  "assets": {
+    "CARD.STRIKE_IRONCLAD": "spire-codex/cards/strike_ironclad.webp",
+    "CARD.DEFEND_IRONCLAD": "spire-codex/cards/defend_ironclad.webp",
+    "CARD.BASH": "spire-codex/cards/bash.webp",
+    "CARD.IRON_WAVE": "spire-codex/cards/iron_wave.webp",
+    "CARD.POMMEL_STRIKE": "spire-codex/cards/pommel_strike.webp",
+    "CARD.STRIKE_SILENT": "spire-codex/cards/strike_silent.webp",
+    "CARD.DEFEND_SILENT": "spire-codex/cards/defend_silent.webp",
+    "CARD.NEUTRALIZE": "spire-codex/cards/neutralize.webp",
+    "CARD.SURVIVOR": "spire-codex/cards/survivor.webp",
+    "CARD.BACKFLIP": "spire-codex/cards/backflip.webp",
+    "CARD.ADRENALINE": "spire-codex/cards/adrenaline.webp",
+    "RELIC.BURNING_BLOOD": "spire-codex/relics/burning_blood.webp",
+    "RELIC.RING_OF_THE_SNAKE": "spire-codex/relics/ring_of_the_snake.webp",
+    "MONSTER.NIBBIT": "spire-codex/monsters/nibbit.webp",
+    "MONSTER.FUZZY_WURM_CRAWLER": "spire-codex/monsters/fuzzy_wurm_crawler.webp",
+    "MONSTER.SHRINKER_BEETLE": "spire-codex/monsters/shrinker_beetle.webp"
+  }
+}

@@ -1,13 +1,18 @@
 [workspace]
 members = [
   "crates/rusty-spire-core",
-  "crates/rusty-spire-cli",
+  "crates/rusty-spire-data",
+  "crates/rusty-spire-combat",
+  "crates/rusty-spire-simulator",
+  "crates/rusty-spire-heuristics",
+  "crates/rusty-spire-api",
+  "apps/cli",
   "crates/rusty-spire-wasm",
 ]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 license = "MIT"
 

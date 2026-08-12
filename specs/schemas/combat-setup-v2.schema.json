@@ -1,0 +1,64 @@
+{
+  "$id": "https://rusty-spire.dev/schemas/combat-setup-v2.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "ascension_level": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "character": {
+      "type": "object"
+    },
+    "deck": {
+      "minItems": 1,
+      "type": "array"
+    },
+    "encounter": {
+      "type": "object"
+    },
+    "package": {
+      "additionalProperties": false,
+      "properties": {
+        "package_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "package_id",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "potions": {
+      "maxItems": 0,
+      "type": "array"
+    },
+    "relics": {
+      "type": "array"
+    },
+    "rng": {
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 2
+    }
+  },
+  "required": [
+    "schema_version",
+    "package",
+    "ascension_level",
+    "rng",
+    "character",
+    "deck",
+    "relics",
+    "potions",
+    "encounter"
+  ],
+  "type": "object"
+}

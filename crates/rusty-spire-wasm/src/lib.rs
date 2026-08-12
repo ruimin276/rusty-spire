@@ -2,10 +2,11 @@
 mod browser {
     use std::slice;
 
-    use rusty_spire_core::{CombatCatalog, CombatSetupV1, SolveLimits, initialize, solve};
+    use rusty_spire_api::{AppService, CombatSetupV1, SolveLimits};
     use serde_json::{Value, json};
 
-    const CATALOG_JSON: &[u8] = include_bytes!("../../../catalogs/combat_v0.107.1.json");
+    const LEGACY_CATALOG_SHA256: &str =
+        "7a27dc78a49f6523b64dcc140117f8c21690d1fde6240208de488ee0e88e088c";
 
     #[unsafe(no_mangle)]
     pub extern "C" fn sls2_alloc(length: u32) -> u32 {
@@ -52,18 +53,48 @@ mod browser {
         leak_bytes(serde_json::to_vec(&envelope).expect("JSON envelope is serializable"))
     }
 
+    /// Versioned JSON dispatcher. The input is an `ApiOperationV1`; the output
+    /// uses the same packed pointer/length envelope as the legacy export.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn sls2_call_v1(pointer: u32, length: u32) -> u64 {
+        if pointer == 0 {
+            return leak_bytes(
+                serde_json::to_vec(&json!({
+                    "ok": false,
+                    "error": {"schema_version": 1, "code": "invalid_request", "message": "input pointer cannot be zero"}
+                }))
+                .expect("error serializes"),
+            );
+        }
+        let input = unsafe { slice::from_raw_parts(pointer as *const u8, length as usize) };
+        let output = match AppService::embedded() {
+            Ok(service) => service.call_json(input),
+            Err(error) => {
+                serde_json::to_vec(&json!({"ok": false, "error": error})).expect("error serializes")
+            }
+        };
+        leak_bytes(output)
+    }
+
     fn solve_input(input: &[u8], limits: SolveLimits) -> Result<Value, String> {
-        let catalog = CombatCatalog::from_json(CATALOG_JSON).map_err(|error| error.to_string())?;
-        let setup: CombatSetupV1 = serde_json::from_slice(input)
+        let service = AppService::embedded().map_err(|error| error.to_string())?;
+        let mut setup: CombatSetupV1 = serde_json::from_slice(input)
             .map_err(|error| format!("invalid CombatSetupV1: {error}"))?;
-        let combat = initialize(&catalog, &setup, false).map_err(|error| error.to_string())?;
+        if setup.catalog_sha256 == LEGACY_CATALOG_SHA256 {
+            setup.catalog_sha256 = service.package().sha256.clone();
+        }
+        let combat = service
+            .validate_legacy(&setup, false)
+            .map_err(|error| error.to_string())?;
         let opening_hand = combat
             .state
             .hand
             .iter()
             .map(|card| card.model_id.clone())
             .collect::<Vec<_>>();
-        let result = solve(&catalog, &combat, limits).map_err(|error| error.to_string())?;
+        let result = service
+            .solve_legacy(&setup, limits, false)
+            .map_err(|error| error.to_string())?;
         Ok(json!({ "result": result, "opening_hand": opening_hand }))
     }
 

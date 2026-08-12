@@ -1,0 +1,18 @@
+{
+  "$id": "https://rusty-spire.dev/schemas/combat-snapshot-v3.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 3
+    },
+    "state": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "state"
+  ],
+  "type": "object"
+}

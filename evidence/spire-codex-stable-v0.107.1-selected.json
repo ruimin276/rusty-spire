@@ -1,0 +1,1858 @@
+{
+  "schema_version": 1,
+  "source": {
+    "base_url": "https://spire-codex.com",
+    "channel": "stable",
+    "developers_url": "https://spire-codex.com/developers",
+    "name": "spire_codex",
+    "origin": "community API extracted by its maintainers from game files",
+    "terms_url": "https://github.com/ptrlrd/spire-codex/blob/main/API_TERMS.md"
+  },
+  "version_evidence": {
+    "changelog_title": "Slay the Spire 2 v0.107.1: Aeonglass replaces Doormaker, new Neow relics, the RNG rework, and a full balance pass",
+    "game_version": "v0.107.1",
+    "source_release": "1.2.0",
+    "source_release_date": "2026-06-18",
+    "status": "inferred_from_latest_changelog_with_build_id",
+    "steam_build_id": "23811903"
+  },
+  "content_sha256": "97ec3fe802f0f69e935c9408767bd3c03c26207fe4eb5b2aec8230c6cfba4f2a",
+  "cards": [
+    {
+      "id": "ADRENALINE",
+      "name": "Adrenaline",
+      "description": "Gain [energy:1].\nDraw 2 cards.",
+      "description_raw": "Gain {Energy:energyIcons()}.\nDraw 2 cards.",
+      "cost": 0,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Skill",
+      "type_key": "Skill",
+      "rarity": "Rare",
+      "rarity_key": "Rare",
+      "target": "Self",
+      "color": "silent",
+      "damage": null,
+      "block": null,
+      "hit_count": null,
+      "powers_applied": null,
+      "cards_draw": 2,
+      "energy_gain": 1,
+      "hp_loss": null,
+      "keywords": [
+        "Exhaust"
+      ],
+      "keywords_key": [
+        "Exhaust"
+      ],
+      "tags": null,
+      "spawns_cards": null,
+      "vars": {
+        "Energy": 1,
+        "Cards": 2
+      },
+      "upgrade": {
+        "energy": "+1"
+      },
+      "upgrade_description": "Gain [energy:2].\nDraw 2 cards.",
+      "image_url": "/static/images/cards/adrenaline.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 149,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/adrenaline.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/adrenaline_upg.webp"
+    },
+    {
+      "id": "ASCENDERS_BANE",
+      "name": "Ascender's Bane",
+      "description": "",
+      "description_raw": "",
+      "cost": -1,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Curse",
+      "type_key": "Curse",
+      "rarity": "Curse",
+      "rarity_key": "Curse",
+      "target": "None",
+      "color": "curse",
+      "damage": null,
+      "block": null,
+      "hit_count": null,
+      "powers_applied": null,
+      "cards_draw": null,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": [
+        "Ethereal",
+        "Unplayable",
+        "Eternal"
+      ],
+      "keywords_key": [
+        "Ethereal",
+        "Unplayable",
+        "Eternal"
+      ],
+      "tags": null,
+      "spawns_cards": null,
+      "vars": null,
+      "upgrade": null,
+      "upgrade_description": null,
+      "image_url": "/static/images/cards/ascenders_bane.webp",
+      "beta_image_url": "/static/images/cards/beta/ascenders_bane.png",
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 503,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/ascenders_bane.webp",
+      "image_url_card_upg": null
+    },
+    {
+      "id": "BACKFLIP",
+      "name": "Backflip",
+      "description": "Gain 5 [gold]Block[/gold].\nDraw 2 cards.",
+      "description_raw": "Gain {Block:diff()} [gold]Block[/gold].\nDraw 2 cards.",
+      "cost": 1,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Skill",
+      "type_key": "Skill",
+      "rarity": "Common",
+      "rarity_key": "Common",
+      "target": "Self",
+      "color": "silent",
+      "damage": null,
+      "block": 5,
+      "hit_count": null,
+      "powers_applied": null,
+      "cards_draw": 2,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": null,
+      "keywords_key": null,
+      "tags": null,
+      "spawns_cards": null,
+      "vars": {
+        "Block": 5,
+        "Cards": 2
+      },
+      "upgrade": {
+        "block": "+3"
+      },
+      "upgrade_description": "Gain 8 [gold]Block[/gold].\nDraw 2 cards.",
+      "image_url": "/static/images/cards/backflip.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 92,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/backflip.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/backflip_upg.webp"
+    },
+    {
+      "id": "BASH",
+      "name": "Bash",
+      "description": "Deal 8 damage.\nApply 2 [gold]Vulnerable[/gold].",
+      "description_raw": "Deal {Damage:diff()} damage.\nApply {VulnerablePower:diff()} [gold]Vulnerable[/gold].",
+      "cost": 2,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Attack",
+      "type_key": "Attack",
+      "rarity": "Basic",
+      "rarity_key": "Basic",
+      "target": "AnyEnemy",
+      "color": "ironclad",
+      "damage": 8,
+      "block": null,
+      "hit_count": null,
+      "powers_applied": [
+        {
+          "power": "Vulnerable",
+          "power_key": "Vulnerable",
+          "amount": 2
+        }
+      ],
+      "cards_draw": null,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": null,
+      "keywords_key": null,
+      "tags": null,
+      "spawns_cards": null,
+      "vars": {
+        "Damage": 8,
+        "VulnerablePower": 2,
+        "Vulnerable": 2
+      },
+      "upgrade": {
+        "damage": "+2",
+        "vulnerable": "+1"
+      },
+      "upgrade_description": "Deal 10 damage.\nApply 3 [gold]Vulnerable[/gold].",
+      "image_url": "/static/images/cards/bash.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 0,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/bash.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/bash_upg.webp"
+    },
+    {
+      "id": "DEFEND_IRONCLAD",
+      "name": "Defend",
+      "description": "Gain 5 [gold]Block[/gold].",
+      "description_raw": "Gain {Block:diff()} [gold]Block[/gold].",
+      "cost": 1,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Skill",
+      "type_key": "Skill",
+      "rarity": "Basic",
+      "rarity_key": "Basic",
+      "target": "Self",
+      "color": "ironclad",
+      "damage": null,
+      "block": 5,
+      "hit_count": null,
+      "powers_applied": null,
+      "cards_draw": null,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": null,
+      "keywords_key": null,
+      "tags": [
+        "Defend"
+      ],
+      "spawns_cards": null,
+      "vars": {
+        "Block": 5
+      },
+      "upgrade": {
+        "block": "+3"
+      },
+      "upgrade_description": "Gain 8 [gold]Block[/gold].",
+      "image_url": "/static/images/cards/defend_ironclad.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 1,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/defend_ironclad.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/defend_ironclad_upg.webp"
+    },
+    {
+      "id": "DEFEND_SILENT",
+      "name": "Defend",
+      "description": "Gain 5 [gold]Block[/gold].",
+      "description_raw": "Gain {Block:diff()} [gold]Block[/gold].",
+      "cost": 1,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Skill",
+      "type_key": "Skill",
+      "rarity": "Basic",
+      "rarity_key": "Basic",
+      "target": "Self",
+      "color": "silent",
+      "damage": null,
+      "block": 5,
+      "hit_count": null,
+      "powers_applied": null,
+      "cards_draw": null,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": null,
+      "keywords_key": null,
+      "tags": [
+        "Defend"
+      ],
+      "spawns_cards": null,
+      "vars": {
+        "Block": 5
+      },
+      "upgrade": {
+        "block": "+3"
+      },
+      "upgrade_description": "Gain 8 [gold]Block[/gold].",
+      "image_url": "/static/images/cards/defend_silent.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 87,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/defend_silent.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/defend_silent_upg.webp"
+    },
+    {
+      "id": "IRON_WAVE",
+      "name": "Iron Wave",
+      "description": "Gain 5 [gold]Block[/gold].\nDeal 5 damage.",
+      "description_raw": "Gain {Block:diff()} [gold]Block[/gold].\nDeal {Damage:diff()} damage.",
+      "cost": 1,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Attack",
+      "type_key": "Attack",
+      "rarity": "Common",
+      "rarity_key": "Common",
+      "target": "AnyEnemy",
+      "color": "ironclad",
+      "damage": 5,
+      "block": 5,
+      "hit_count": null,
+      "powers_applied": null,
+      "cards_draw": null,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": null,
+      "keywords_key": null,
+      "tags": null,
+      "spawns_cards": null,
+      "vars": {
+        "Damage": 5,
+        "Block": 5
+      },
+      "upgrade": {
+        "damage": "+2",
+        "block": "+2"
+      },
+      "upgrade_description": "Gain 7 [gold]Block[/gold].\nDeal 7 damage.",
+      "image_url": "/static/images/cards/iron_wave.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 12,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/iron_wave.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/iron_wave_upg.webp"
+    },
+    {
+      "id": "NEUTRALIZE",
+      "name": "Neutralize",
+      "description": "Deal 3 damage.\nApply 1 [gold]Weak[/gold].",
+      "description_raw": "Deal {Damage:diff()} damage.\nApply {WeakPower:diff()} [gold]Weak[/gold].",
+      "cost": 0,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Attack",
+      "type_key": "Attack",
+      "rarity": "Basic",
+      "rarity_key": "Basic",
+      "target": "AnyEnemy",
+      "color": "silent",
+      "damage": 3,
+      "block": null,
+      "hit_count": null,
+      "powers_applied": [
+        {
+          "power": "Weak",
+          "power_key": "Weak",
+          "amount": 1
+        }
+      ],
+      "cards_draw": null,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": null,
+      "keywords_key": null,
+      "tags": null,
+      "spawns_cards": null,
+      "vars": {
+        "Damage": 3,
+        "WeakPower": 1,
+        "Weak": 1
+      },
+      "upgrade": {
+        "damage": "+1",
+        "weak": "+1"
+      },
+      "upgrade_description": "Deal 4 damage.\nApply 2 [gold]Weak[/gold].",
+      "image_url": "/static/images/cards/neutralize.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 88,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/neutralize.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/neutralize_upg.webp"
+    },
+    {
+      "id": "POMMEL_STRIKE",
+      "name": "Pommel Strike",
+      "description": "Deal 9 damage.\nDraw 1 card.",
+      "description_raw": "Deal {Damage:diff()} damage.\nDraw {Cards:diff()} {Cards:plural:card|cards}.",
+      "cost": 1,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Attack",
+      "type_key": "Attack",
+      "rarity": "Common",
+      "rarity_key": "Common",
+      "target": "AnyEnemy",
+      "color": "ironclad",
+      "damage": 9,
+      "block": null,
+      "hit_count": null,
+      "powers_applied": null,
+      "cards_draw": 1,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": null,
+      "keywords_key": null,
+      "tags": [
+        "Strike"
+      ],
+      "spawns_cards": null,
+      "vars": {
+        "Damage": 9,
+        "Cards": 1
+      },
+      "upgrade": {
+        "damage": "+1",
+        "cards": "+1"
+      },
+      "upgrade_description": "Deal 10 damage.\nDraw 2 cards.",
+      "image_url": "/static/images/cards/pommel_strike.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 15,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/pommel_strike.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/pommel_strike_upg.webp"
+    },
+    {
+      "id": "STRIKE_IRONCLAD",
+      "name": "Strike",
+      "description": "Deal 6 damage.",
+      "description_raw": "Deal {Damage:diff()} damage.",
+      "cost": 1,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Attack",
+      "type_key": "Attack",
+      "rarity": "Basic",
+      "rarity_key": "Basic",
+      "target": "AnyEnemy",
+      "color": "ironclad",
+      "damage": 6,
+      "block": null,
+      "hit_count": null,
+      "powers_applied": null,
+      "cards_draw": null,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": null,
+      "keywords_key": null,
+      "tags": [
+        "Strike"
+      ],
+      "spawns_cards": null,
+      "vars": {
+        "Damage": 6
+      },
+      "upgrade": {
+        "damage": "+3"
+      },
+      "upgrade_description": "Deal 9 damage.",
+      "image_url": "/static/images/cards/strike_ironclad.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 2,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/strike_ironclad.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/strike_ironclad_upg.webp"
+    },
+    {
+      "id": "STRIKE_SILENT",
+      "name": "Strike",
+      "description": "Deal 6 damage.",
+      "description_raw": "Deal {Damage:diff()} damage.",
+      "cost": 1,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Attack",
+      "type_key": "Attack",
+      "rarity": "Basic",
+      "rarity_key": "Basic",
+      "target": "AnyEnemy",
+      "color": "silent",
+      "damage": 6,
+      "block": null,
+      "hit_count": null,
+      "powers_applied": null,
+      "cards_draw": null,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": null,
+      "keywords_key": null,
+      "tags": [
+        "Strike"
+      ],
+      "spawns_cards": null,
+      "vars": {
+        "Damage": 6
+      },
+      "upgrade": {
+        "damage": "+3"
+      },
+      "upgrade_description": "Deal 9 damage.",
+      "image_url": "/static/images/cards/strike_silent.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 89,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/strike_silent.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/strike_silent_upg.webp"
+    },
+    {
+      "id": "SURVIVOR",
+      "name": "Survivor",
+      "description": "Gain 8 [gold]Block[/gold].\nDiscard 1 card.",
+      "description_raw": "Gain {Block:diff()} [gold]Block[/gold].\nDiscard 1 card.",
+      "cost": 1,
+      "is_x_cost": null,
+      "is_x_star_cost": null,
+      "star_cost": null,
+      "type": "Skill",
+      "type_key": "Skill",
+      "rarity": "Basic",
+      "rarity_key": "Basic",
+      "target": "Self",
+      "color": "silent",
+      "damage": null,
+      "block": 8,
+      "hit_count": null,
+      "powers_applied": null,
+      "cards_draw": null,
+      "energy_gain": null,
+      "hp_loss": null,
+      "keywords": null,
+      "keywords_key": null,
+      "tags": null,
+      "spawns_cards": null,
+      "vars": {
+        "Block": 8
+      },
+      "upgrade": {
+        "block": "+3"
+      },
+      "upgrade_description": "Gain 11 [gold]Block[/gold].\nDiscard 1 card.",
+      "image_url": "/static/images/cards/survivor.webp",
+      "beta_image_url": null,
+      "type_variants": null,
+      "can_be_generated_in_combat": null,
+      "multiplayer_only": null,
+      "compendium_order": 90,
+      "sources": null,
+      "image_url_card": "https://cdn.spire-codex.com/cards-full/stable/survivor.webp",
+      "image_url_card_upg": "https://cdn.spire-codex.com/cards-full/stable/survivor_upg.webp"
+    }
+  ],
+  "characters": [
+    {
+      "id": "IRONCLAD",
+      "name": "The Ironclad",
+      "description": "The last soldier of the Ironclads.\nCrushes foes with sword and flame against his will.",
+      "starting_hp": 80,
+      "starting_gold": 99,
+      "max_energy": 3,
+      "orb_slots": null,
+      "starting_deck": [
+        "StrikeIronclad",
+        "StrikeIronclad",
+        "StrikeIronclad",
+        "StrikeIronclad",
+        "StrikeIronclad",
+        "DefendIronclad",
+        "DefendIronclad",
+        "DefendIronclad",
+        "DefendIronclad",
+        "Bash"
+      ],
+      "starting_relics": [
+        "BurningBlood"
+      ],
+      "unlocks_after": null,
+      "gender": "Masculine",
+      "color": "red",
+      "dialogue_color": "590700",
+      "quotes": {
+        "event_death_prevention": "My team still needs me.",
+        "gold_monologue": "[sine]These riches can bolster my tribe's armory...[/sine]",
+        "aroma_principle": "[sine][red]Pain is nothing. My enemies must die.[/red][/sine]",
+        "banter_alive": "Make haste.",
+        "banter_dead": "...",
+        "cards_modifier_title": "Ironclad Cards",
+        "cards_modifier_description": "Ironclad cards will now appear in rewards and shops."
+      },
+      "dialogues": [
+        {
+          "ancient": "DARV",
+          "ancient_name": "Darv",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "The flaming warrior has returned!\nI’ve got just the thing for ya!"
+            }
+          ]
+        },
+        {
+          "ancient": "DARV",
+          "ancient_name": "Darv",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Good to see ya still kickin’ and bashin’ em heads in!"
+            }
+          ]
+        },
+        {
+          "ancient": "DARV",
+          "ancient_name": "Darv",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "I’m still holding on to that heavy blade of yours... but I can’t find no one to restore it."
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "[i][font_size=22]The Ironclad stares at Darv.[/font_size][/i]"
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "Maybe the Architect knows somethin’."
+            }
+          ]
+        },
+        {
+          "ancient": "NEOW",
+          "ancient_name": "Neow",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[sine]..arise.. my.. warrior...\n..time... to fight...again...[/sine]"
+            }
+          ]
+        },
+        {
+          "ancient": "NEOW",
+          "ancient_name": "Neow",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[sine]..still.. lost.. to rage... good...[/sine]"
+            }
+          ]
+        },
+        {
+          "ancient": "NEOW",
+          "ancient_name": "Neow",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[sine]..remember.. the.. first..time\n...you ..came...before me..[/sine]"
+            },
+            {
+              "order": 1,
+              "speaker": "ancient",
+              "text": "[sine]..so..furious...[/sine]"
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "[sine]...so..useful...[/sine]"
+            }
+          ]
+        },
+        {
+          "ancient": "NONUPEIPE",
+          "ancient_name": "Nonupeipe",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Ah, the Ironclad finally arrives before me.\nCome forth and I shall endow you with my power."
+            }
+          ]
+        },
+        {
+          "ancient": "NONUPEIPE",
+          "ancient_name": "Nonupeipe",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Ironclad ironclad... was my previous gift not enough?"
+            }
+          ]
+        },
+        {
+          "ancient": "NONUPEIPE",
+          "ancient_name": "Nonupeipe",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "You return again my champion? How many times?\nWere you not strong enough to wipe out entire clans before?"
+            }
+          ]
+        },
+        {
+          "ancient": "OROBAS",
+          "ancient_name": "Orobas",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "An Ironclad!? How possible?? Scary. Very scary!!"
+            }
+          ]
+        },
+        {
+          "ancient": "OROBAS",
+          "ancient_name": "Orobas",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Contract signer? Why!? Bad choice? Yes. Mistake!"
+            }
+          ]
+        },
+        {
+          "ancient": "OROBAS",
+          "ancient_name": "Orobas",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Wishing you freedom!! Wishing hard!\nVakuu bad. Very bad! Architect free you?"
+            }
+          ]
+        },
+        {
+          "ancient": "PAEL",
+          "ancient_name": "Pael",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[thinky_dots]You contain such rage. Take from me and find some peace...[/thinky_dots]"
+            }
+          ]
+        },
+        {
+          "ancient": "PAEL",
+          "ancient_name": "Pael",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[thinky_dots]Do you remember how it feels to dream?\nIt is good to sleep...[/thinky_dots]"
+            }
+          ]
+        },
+        {
+          "ancient": "PAEL",
+          "ancient_name": "Pael",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[thinky_dots]You must quell your flames.\nFather can free you...[/thinky_dots]"
+            }
+          ]
+        },
+        {
+          "ancient": "TANX",
+          "ancient_name": "Tanx",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "IMPRESSIVE SWORD, WARRIOR! YOU CAN USE MORE WEAPONS!"
+            }
+          ]
+        },
+        {
+          "ancient": "TANX",
+          "ancient_name": "Tanx",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "WEAPONS FOR THE WARRIOR! GRAB A WEAPON! LET’S FIGHT!"
+            }
+          ]
+        },
+        {
+          "ancient": "TANX",
+          "ancient_name": "Tanx",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "FIGHT ME, IRONCLAD!!"
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "[i][font_size=22]The Ironclad fights Tanx.[/font_size][/i]"
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "YEEES!! MIGHTY FIGHT, TAKE WEAPON!"
+            }
+          ]
+        },
+        {
+          "ancient": "TEZCATARA",
+          "ancient_name": "Tezcatara",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "You [jitter][b]burn[/b][/jitter] so pretty! Come in, come in!"
+            }
+          ]
+        },
+        {
+          "ancient": "TEZCATARA",
+          "ancient_name": "Tezcatara",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Such a strong boy you are! Come and eat something.\nCan’t [jitter][b]slaughter[/b][/jitter] on an empty stomach!"
+            }
+          ]
+        },
+        {
+          "ancient": "TEZCATARA",
+          "ancient_name": "Tezcatara",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Ohh, Architect still alive? Kill him [jitter][b]quickly[/b][/jitter] would you?\nI’ll be waiting right here!"
+            }
+          ]
+        },
+        {
+          "ancient": "THE_ARCHITECT",
+          "ancient_name": "The Architect",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "So the arch demon’s thrall has arrived?"
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "Enemy...\nKill..."
+            }
+          ]
+        },
+        {
+          "ancient": "THE_ARCHITECT",
+          "ancient_name": "The Architect",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Cursed to fight forever, aren’t you?"
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "Architect... arch... enemy!!"
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "Do you even know your name?"
+            }
+          ]
+        },
+        {
+          "ancient": "THE_ARCHITECT",
+          "ancient_name": "The Architect",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "I pity you."
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "Kill..."
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "Return to the bottom, Ironclad."
+            }
+          ]
+        },
+        {
+          "ancient": "VAKUU",
+          "ancient_name": "Vakuu",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Imagine seeing [sine]you[/sine] again after so long."
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "[jitter][b]SACRED DEMON![/b][/jitter]\nWhat have you done to me!?"
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "Exactly what you bargained for."
+            }
+          ]
+        },
+        {
+          "ancient": "VAKUU",
+          "ancient_name": "Vakuu",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Do the lost tribes weigh on you...?\n[i][font_size=22]Vakuu howls with laughter.[/font_size][/i]"
+            }
+          ]
+        },
+        {
+          "ancient": "VAKUU",
+          "ancient_name": "Vakuu",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "My puppet of puppets... why haven’t you killed the Architect yet?"
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "After I kill the Architect, I will kill [jitter][b]YOU![/b][/jitter]"
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "[i][font_size=22][sine]Yawn[/sine][/font_size][/i]\nI look forward to watching you fail."
+            }
+          ]
+        }
+      ],
+      "image_url": "/static/images/characters/char_select_ironclad.webp",
+      "animation_url": null
+    },
+    {
+      "id": "SILENT",
+      "name": "The Silent",
+      "description": "A huntress from outside the Spire.\nReady to stab and poison anything in her way.",
+      "starting_hp": 70,
+      "starting_gold": 99,
+      "max_energy": 3,
+      "orb_slots": null,
+      "starting_deck": [
+        "StrikeSilent",
+        "StrikeSilent",
+        "StrikeSilent",
+        "StrikeSilent",
+        "StrikeSilent",
+        "DefendSilent",
+        "DefendSilent",
+        "DefendSilent",
+        "DefendSilent",
+        "DefendSilent",
+        "Neutralize",
+        "Survivor"
+      ],
+      "starting_relics": [
+        "RingOfTheSnake"
+      ],
+      "unlocks_after": null,
+      "gender": "Feminine",
+      "color": "green",
+      "dialogue_color": "284719",
+      "quotes": {
+        "event_death_prevention": "Must live on to hunt another day...",
+        "gold_monologue": "[sine]My sisters would be proud of these riches...[/sine]",
+        "aroma_principle": "[sine][green]...hunt... prove... belong...[/green][/sine]",
+        "banter_alive": "[sine]...[/sine]",
+        "banter_dead": "...",
+        "unlock_text": "Play a single run to unlock this character.",
+        "cards_modifier_title": "Silent Cards",
+        "cards_modifier_description": "Silent cards will now appear in rewards and shops."
+      },
+      "dialogues": [
+        {
+          "ancient": "DARV",
+          "ancient_name": "Darv",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Back in the Spire for you too huh?\nCan’t resist those shinies right?!"
+            }
+          ]
+        },
+        {
+          "ancient": "DARV",
+          "ancient_name": "Darv",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "I’ll trade ya somethin’ nice for that trophy you got there!"
+            }
+          ]
+        },
+        {
+          "ancient": "DARV",
+          "ancient_name": "Darv",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Pity ya don’t remember all my generosity!\nYeah yeah, you know how Neow is..."
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "..."
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "Well! Let’s get you equipped for that final showdown or whatevah!"
+            }
+          ]
+        },
+        {
+          "ancient": "NEOW",
+          "ancient_name": "Neow",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[sine]...returned.. from... outside?\n..knew... you’d... be back...[/sine]"
+            }
+          ]
+        },
+        {
+          "ancient": "NEOW",
+          "ancient_name": "Neow",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[sine]...your..\n ...trophy.. awaits...[/sine]"
+            }
+          ]
+        },
+        {
+          "ancient": "NEOW",
+          "ancient_name": "Neow",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[sine]..both...know..agony..of..family...[/sine]"
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "..."
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "[sine]..still...seeking..approval...?\n...[jitter]FOOLISH[/jitter]...[/sine]"
+            }
+          ]
+        },
+        {
+          "ancient": "NONUPEIPE",
+          "ancient_name": "Nonupeipe",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "A little thief has snuck into my domain?\nDon’t think I can’t see you? Come on out!"
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "[i][font_size=22]The Silent steps out of the shadows...[/font_size][/i]"
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "A huntress, what beckons your return to the Spire?\nApproach and don these blessings."
+            }
+          ]
+        },
+        {
+          "ancient": "NONUPEIPE",
+          "ancient_name": "Nonupeipe",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "I have prepared gifts for you, assassin, don’t be shy."
+            }
+          ]
+        },
+        {
+          "ancient": "NONUPEIPE",
+          "ancient_name": "Nonupeipe",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Of all of her puppets, you surprise me most."
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "..."
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "What took your first life? Did Neow [sine]find[/sine] you?\nA shame you don’t speak."
+            }
+          ]
+        },
+        {
+          "ancient": "OROBAS",
+          "ancient_name": "Orobas",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Infection...? [jitter]BLIGHT!?[/jitter] Take and go!!"
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "[sine]...[/sine]"
+            }
+          ]
+        },
+        {
+          "ancient": "OROBAS",
+          "ancient_name": "Orobas",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Not contagious? Very dying? Architect help you?"
+            }
+          ]
+        },
+        {
+          "ancient": "OROBAS",
+          "ancient_name": "Orobas",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Where sisters? Scary mean sisters!\nBe good person! Don’t be like sisters!!"
+            }
+          ]
+        },
+        {
+          "ancient": "PAEL",
+          "ancient_name": "Pael",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[thinky_dots]Murderous creature, no need for violence here.\nHave part of me and find peace...[/thinky_dots]"
+            }
+          ]
+        },
+        {
+          "ancient": "PAEL",
+          "ancient_name": "Pael",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[thinky_dots]Trophy hunting? Sure, take a part of me...\nWhatever grants you comfort...[/thinky_dots]"
+            }
+          ]
+        },
+        {
+          "ancient": "PAEL",
+          "ancient_name": "Pael",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[thinky_dots]You’ve poisoned me...?\nWhat is this going to...? zZZzz...[/thinky_dots]"
+            }
+          ]
+        },
+        {
+          "ancient": "TANX",
+          "ancient_name": "Tanx",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "A HUNTRESS! I WILL SHARPEN YOUR CLAW!!"
+            }
+          ]
+        },
+        {
+          "ancient": "TANX",
+          "ancient_name": "Tanx",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "WHY DAGGERS!! UNMIGHTY!"
+            }
+          ]
+        },
+        {
+          "ancient": "TANX",
+          "ancient_name": "Tanx",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "FIGHT ME, SILENT!!"
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "[i][font_size=22]The Silent escapes, stealing a weapon on the way.[/font_size][/i]"
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "WHERE DID YOU GO!!!"
+            }
+          ]
+        },
+        {
+          "ancient": "TEZCATARA",
+          "ancient_name": "Tezcatara",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Come closer, quiet one. I can’t see well..."
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "..."
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "You can [jitter][b]trust[/b][/jitter] me."
+            }
+          ]
+        },
+        {
+          "ancient": "TEZCATARA",
+          "ancient_name": "Tezcatara",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Such a nasty [jitter][b]sickness[/b][/jitter] you have. Let’s take care of you."
+            }
+          ]
+        },
+        {
+          "ancient": "TEZCATARA",
+          "ancient_name": "Tezcatara",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "I’ve met your sisters, you know? Such lovely girls they are."
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "..."
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "Oh dear... you haven’t been [jitter][b]fighting[/b][/jitter] have you?"
+            }
+          ]
+        },
+        {
+          "ancient": "THE_ARCHITECT",
+          "ancient_name": "The Architect",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Not even an introduction?"
+            }
+          ]
+        },
+        {
+          "ancient": "THE_ARCHITECT",
+          "ancient_name": "The Architect",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Where did you come from?\nWhat are you after?"
+            }
+          ]
+        },
+        {
+          "ancient": "THE_ARCHITECT",
+          "ancient_name": "The Architect",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[jitter]Hrrgh![/jitter]\n[jitter][red]DIE!![/red][/jitter]"
+            }
+          ]
+        },
+        {
+          "ancient": "THE_ARCHITECT",
+          "ancient_name": "The Architect",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Annoying wretch!\n[jitter]BE GONE!![/jitter]"
+            }
+          ]
+        },
+        {
+          "ancient": "VAKUU",
+          "ancient_name": "Vakuu",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "Killer."
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "[sine]...[/sine]"
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "This won’t [jitter]end[/jitter] well for you."
+            }
+          ]
+        },
+        {
+          "ancient": "VAKUU",
+          "ancient_name": "Vakuu",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "[i][font_size=22]Vakuu displays his various contracts to the Silent[/font_size][/i]"
+            }
+          ]
+        },
+        {
+          "ancient": "VAKUU",
+          "ancient_name": "Vakuu",
+          "lines": [
+            {
+              "order": 0,
+              "speaker": "ancient",
+              "text": "The Architect is not enough, kill your sisters too!"
+            },
+            {
+              "order": 1,
+              "speaker": "char",
+              "text": "[sine]...[/sine]"
+            },
+            {
+              "order": 2,
+              "speaker": "ancient",
+              "text": "No need for words, we are the same."
+            }
+          ]
+        }
+      ],
+      "image_url": "/static/images/characters/char_select_silent.webp",
+      "animation_url": null
+    }
+  ],
+  "monsters": [
+    {
+      "id": "FUZZY_WURM_CRAWLER",
+      "name": "Fuzzy Wurm Crawler",
+      "type": "Normal",
+      "min_hp": 55,
+      "max_hp": 57,
+      "min_hp_ascension": 58,
+      "max_hp_ascension": 59,
+      "moves": [
+        {
+          "id": "FIRST_ACID_GOOP",
+          "name": "First Acid Goop",
+          "intent": "Attack",
+          "damage": {
+            "normal": 4,
+            "ascension": 6,
+            "hit_count": null
+          },
+          "block": null,
+          "heal": null,
+          "powers": null
+        },
+        {
+          "id": "ACID_GOOP",
+          "name": "Acid Goop",
+          "intent": "Attack",
+          "damage": {
+            "normal": 4,
+            "ascension": 6,
+            "hit_count": null
+          },
+          "block": null,
+          "heal": null,
+          "powers": null
+        },
+        {
+          "id": "INHALE",
+          "name": "Inhale",
+          "intent": "Buff",
+          "damage": null,
+          "block": null,
+          "heal": null,
+          "powers": [
+            {
+              "power_id": "STRENGTH",
+              "target": "self",
+              "amount": 7
+            }
+          ]
+        }
+      ],
+      "damage_values": {
+        "AcidGoop": {
+          "normal": 4,
+          "ascension": 6,
+          "hit_count": null
+        }
+      },
+      "block_values": null,
+      "encounters": [
+        {
+          "encounter_id": "FUZZY_WURM_CRAWLER_WEAK",
+          "encounter_name": "Fuzzy Wurm Crawler",
+          "room_type": "Monster",
+          "act": "Act 1 - Overgrowth",
+          "is_weak": true
+        },
+        {
+          "encounter_id": "OVERGROWTH_CRAWLERS",
+          "encounter_name": "Overgrowth Crawlers",
+          "room_type": "Monster",
+          "act": "Act 1 - Overgrowth",
+          "is_weak": false
+        }
+      ],
+      "innate_powers": null,
+      "attack_pattern": {
+        "type": "cycle",
+        "initial_move": "FIRST_ACID_GOOP",
+        "states": [
+          {
+            "id": "FIRST_ACID_GOOP",
+            "type": "move",
+            "move_id": "FIRST_ACID_GOOP",
+            "must_perform_once": null,
+            "next": null,
+            "branches": null
+          },
+          {
+            "id": "ACID_GOOP",
+            "type": "move",
+            "move_id": "ACID_GOOP",
+            "must_perform_once": null,
+            "next": "FIRST_ACID_GOOP",
+            "branches": null
+          },
+          {
+            "id": "INHALE",
+            "type": "move",
+            "move_id": "INHALE",
+            "must_perform_once": null,
+            "next": null,
+            "branches": null
+          }
+        ],
+        "description": "Always uses First Acid Goop"
+      },
+      "image_url": "/static/images/monsters/fuzzy_wurm_crawler.webp",
+      "beta_image_url": null
+    },
+    {
+      "id": "NIBBIT",
+      "name": "Nibbit",
+      "type": "Normal",
+      "min_hp": 42,
+      "max_hp": 46,
+      "min_hp_ascension": 44,
+      "max_hp_ascension": 48,
+      "moves": [
+        {
+          "id": "BUTT",
+          "name": "Butt",
+          "intent": "Attack",
+          "damage": {
+            "normal": 12,
+            "ascension": 13,
+            "hit_count": null
+          },
+          "block": null,
+          "heal": null,
+          "powers": null
+        },
+        {
+          "id": "SLICE",
+          "name": "Slice",
+          "intent": "Attack + Defend",
+          "damage": {
+            "normal": 6,
+            "ascension": 7,
+            "hit_count": null
+          },
+          "block": 5,
+          "heal": null,
+          "powers": null
+        },
+        {
+          "id": "HISS",
+          "name": "Hiss",
+          "intent": "Buff",
+          "damage": null,
+          "block": null,
+          "heal": null,
+          "powers": [
+            {
+              "power_id": "STRENGTH",
+              "target": "self",
+              "amount": 2
+            }
+          ]
+        }
+      ],
+      "damage_values": {
+        "Butt": {
+          "normal": 12,
+          "ascension": 13,
+          "hit_count": null
+        },
+        "Slice": {
+          "normal": 6,
+          "ascension": 7,
+          "hit_count": null
+        }
+      },
+      "block_values": null,
+      "encounters": [
+        {
+          "encounter_id": "NIBBITS_NORMAL",
+          "encounter_name": "A Pair of Nibbits",
+          "room_type": "Monster",
+          "act": "Act 1 - Overgrowth",
+          "is_weak": false
+        },
+        {
+          "encounter_id": "NIBBITS_WEAK",
+          "encounter_name": "A Lone Nibbit",
+          "room_type": "Monster",
+          "act": "Act 1 - Overgrowth",
+          "is_weak": true
+        }
+      ],
+      "innate_powers": null,
+      "attack_pattern": {
+        "type": "conditional",
+        "initial_move": "INIT_MOVE",
+        "states": [
+          {
+            "id": "BUTT_MOVE",
+            "type": "move",
+            "move_id": "BUTT",
+            "must_perform_once": null,
+            "next": "SLICE_MOVE",
+            "branches": null
+          },
+          {
+            "id": "SLICE_MOVE",
+            "type": "move",
+            "move_id": "SLICE",
+            "must_perform_once": null,
+            "next": "HISS_MOVE",
+            "branches": null
+          },
+          {
+            "id": "HISS_MOVE",
+            "type": "move",
+            "move_id": "HISS",
+            "must_perform_once": null,
+            "next": "BUTT_MOVE",
+            "branches": null
+          },
+          {
+            "id": "INIT_MOVE",
+            "type": "conditional",
+            "move_id": null,
+            "must_perform_once": null,
+            "next": null,
+            "branches": [
+              {
+                "move_id": "BUTT",
+                "weight": null,
+                "repeat": null,
+                "max_times": null,
+                "condition": "((Nibbit)base.Creature.Monster).IsAlone"
+              },
+              {
+                "move_id": "HISS",
+                "weight": null,
+                "repeat": null,
+                "max_times": null,
+                "condition": "!((Nibbit)base.Creature.Monster).IsFront"
+              },
+              {
+                "move_id": "SLICE",
+                "weight": null,
+                "repeat": null,
+                "max_times": null,
+                "condition": "((Nibbit)base.Creature.Monster).IsFront"
+              }
+            ]
+          }
+        ],
+        "description": "then conditional: Butt (if alone) / Hiss (if not in front) / Slice (if in front)"
+      },
+      "image_url": "/static/images/monsters/nibbit.webp",
+      "beta_image_url": null
+    },
+    {
+      "id": "SHRINKER_BEETLE",
+      "name": "Shrinker Beetle",
+      "type": "Normal",
+      "min_hp": 38,
+      "max_hp": 40,
+      "min_hp_ascension": 40,
+      "max_hp_ascension": 42,
+      "moves": [
+        {
+          "id": "SHRINKER",
+          "name": "Shrinker",
+          "intent": "Debuff",
+          "damage": null,
+          "block": null,
+          "heal": null,
+          "powers": null
+        },
+        {
+          "id": "CHOMP",
+          "name": "Chomp",
+          "intent": "Attack",
+          "damage": {
+            "normal": 7,
+            "ascension": 8,
+            "hit_count": null
+          },
+          "block": null,
+          "heal": null,
+          "powers": null
+        },
+        {
+          "id": "STOMP",
+          "name": "Stomp",
+          "intent": "Attack",
+          "damage": {
+            "normal": 13,
+            "ascension": 14,
+            "hit_count": null
+          },
+          "block": null,
+          "heal": null,
+          "powers": null
+        }
+      ],
+      "damage_values": {
+        "Chomp": {
+          "normal": 7,
+          "ascension": 8,
+          "hit_count": null
+        },
+        "Stomp": {
+          "normal": 13,
+          "ascension": 14,
+          "hit_count": null
+        }
+      },
+      "block_values": null,
+      "encounters": [
+        {
+          "encounter_id": "OVERGROWTH_CRAWLERS",
+          "encounter_name": "Overgrowth Crawlers",
+          "room_type": "Monster",
+          "act": "Act 1 - Overgrowth",
+          "is_weak": false
+        },
+        {
+          "encounter_id": "SHRINKER_BEETLE_WEAK",
+          "encounter_name": "Shrinker Beetle",
+          "room_type": "Monster",
+          "act": "Act 1 - Overgrowth",
+          "is_weak": true
+        }
+      ],
+      "innate_powers": null,
+      "attack_pattern": {
+        "type": "cycle",
+        "initial_move": "SHRINKER",
+        "states": [
+          {
+            "id": "SHRINKER_MOVE",
+            "type": "move",
+            "move_id": "SHRINKER",
+            "must_perform_once": null,
+            "next": "CHOMP_MOVE",
+            "branches": null
+          },
+          {
+            "id": "CHOMP_MOVE",
+            "type": "move",
+            "move_id": "CHOMP",
+            "must_perform_once": null,
+            "next": "STOMP_MOVE",
+            "branches": null
+          },
+          {
+            "id": "STOMP_MOVE",
+            "type": "move",
+            "move_id": "STOMP",
+            "must_perform_once": null,
+            "next": "CHOMP_MOVE",
+            "branches": null
+          }
+        ],
+        "description": "Shrinker → Chomp → Stomp → repeat"
+      },
+      "image_url": "/static/images/monsters/shrinker_beetle.webp",
+      "beta_image_url": null
+    }
+  ],
+  "relics": [
+    {
+      "id": "BURNING_BLOOD",
+      "name": "Burning Blood",
+      "description": "At the end of combat, heal [green]6[/green] HP.",
+      "description_raw": "At the end of combat, heal [green]{Heal}[/green] HP.",
+      "flavor": "[red]Details for this relic will be revealed in the future...[/red]",
+      "rarity": "Starter Relic",
+      "rarity_key": "Starter",
+      "pool": "ironclad",
+      "merchant_price": null,
+      "image_url": "/static/images/relics/burning_blood.webp",
+      "image_variants": null,
+      "name_variants": null,
+      "notes": null,
+      "compendium_order": 2
+    },
+    {
+      "id": "RING_OF_THE_SNAKE",
+      "name": "Ring of the Snake",
+      "description": "At the start of each combat, draw [blue]2[/blue] additional cards.",
+      "description_raw": "At the start of each combat, draw [blue]{Cards}[/blue] additional {Cards:plural:card|cards}.",
+      "flavor": "[red]Details for this relic will be revealed in the future...[/red]",
+      "rarity": "Starter Relic",
+      "rarity_key": "Starter",
+      "pool": "silent",
+      "merchant_price": null,
+      "image_url": "/static/images/relics/ring_of_the_snake.webp",
+      "image_variants": null,
+      "name_variants": null,
+      "notes": null,
+      "compendium_order": 9
+    },
+    {
+      "id": "WINGED_BOOTS",
+      "name": "Winged Boots",
+      "description": "You may ignore paths when choosing the next rooms to travel to [blue]3[/blue] times.",
+      "description_raw": "You may ignore paths when choosing the next rooms to travel to [blue]{Rooms}[/blue] times.",
+      "flavor": "[red]Details for this relic will be revealed in the future...[/red]",
+      "rarity": "Ancient Relic",
+      "rarity_key": "Ancient",
+      "pool": "shared",
+      "merchant_price": null,
+      "image_url": "/static/images/relics/winged_boots.webp",
+      "image_variants": null,
+      "name_variants": null,
+      "notes": null,
+      "compendium_order": 258
+    }
+  ]
+}

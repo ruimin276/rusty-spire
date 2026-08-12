@@ -9,4 +9,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 serde_json.workspace = true
-rusty-spire-core = { path = "../rusty-spire-core" }
+rusty-spire-api = { path = "../rusty-spire-api" }

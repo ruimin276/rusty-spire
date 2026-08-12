@@ -264,20 +264,56 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusty-spire-api"
+version = "0.3.0"
+dependencies = [
+ "rusty-spire-combat",
+ "rusty-spire-core",
+ "rusty-spire-data",
+ "rusty-spire-heuristics",
+ "rusty-spire-simulator",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "rusty-spire-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "clap",
- "rusty-spire-core",
+ "rusty-spire-api",
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "rusty-spire-core"
-version = "0.2.0"
+name = "rusty-spire-combat"
+version = "0.3.0"
 dependencies = [
  "blake3",
+ "rusty-spire-core",
+ "rusty-spire-data",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "rusty-spire-core"
+version = "0.3.0"
+dependencies = [
+ "blake3",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "rusty-spire-data"
+version = "0.3.0"
+dependencies = [
+ "rusty-spire-core",
  "serde",
  "serde_json",
  "sha2",
@@ -285,10 +321,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "rusty-spire-wasm"
-version = "0.2.0"
+name = "rusty-spire-heuristics"
+version = "0.3.0"
 dependencies = [
  "rusty-spire-core",
+ "rusty-spire-simulator",
+ "serde_json",
+]
+
+[[package]]
+name = "rusty-spire-simulator"
+version = "0.3.0"
+dependencies = [
+ "rusty-spire-combat",
+ "rusty-spire-core",
+ "rusty-spire-data",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "rusty-spire-wasm"
+version = "0.3.0"
+dependencies = [
+ "rusty-spire-api",
  "serde_json",
 ]
 
