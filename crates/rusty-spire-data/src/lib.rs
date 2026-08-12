@@ -35,6 +35,21 @@ mod tests {
     }
 
     #[test]
+    fn raw_byte_sha_changes_with_equivalent_json_formatting() {
+        let pretty = include_bytes!("../../../packages/spire-codex-stable-v0.107.1.json");
+        let value: serde_json::Value = serde_json::from_slice(pretty).unwrap();
+        let compact = serde_json::to_vec(&value).unwrap();
+
+        let pretty_package = DataPackage::from_json(pretty).unwrap();
+        let compact_package = DataPackage::from_json(&compact).unwrap();
+
+        assert_eq!(pretty_package.package_id, compact_package.package_id);
+        assert_eq!(pretty_package.sha256, hex_sha256(pretty));
+        assert_eq!(compact_package.sha256, hex_sha256(&compact));
+        assert_ne!(pretty_package.sha256, compact_package.sha256);
+    }
+
+    #[test]
     fn rejects_unknown_effect_power() {
         let mut value: serde_json::Value = serde_json::from_slice(include_bytes!(
             "../../../packages/spire-codex-stable-v0.107.1.json"

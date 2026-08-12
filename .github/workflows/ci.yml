@@ -152,21 +152,26 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     if: ${{ always() }}
-    needs: [governance, rust-tests, python-tests, web-tests]
+    needs: [governance, rust-tests, python-tests, web-tests, coverage, build]
     env:
       GOVERNANCE_RESULT: ${{ needs.governance.result }}
       RUST_RESULT: ${{ needs.rust-tests.result }}
       PYTHON_RESULT: ${{ needs.python-tests.result }}
       WEB_RESULT: ${{ needs.web-tests.result }}
+      COVERAGE_RESULT: ${{ needs.coverage.result }}
+      BUILD_RESULT: ${{ needs.build.result }}
     steps:
-      - name: Require every test job to succeed
+      - name: Require every gated job to succeed
         run: |
-          printf 'Governance: %s\nRust: %s\nPython: %s\nWeb/WASM: %s\n' \
-            "$GOVERNANCE_RESULT" "$RUST_RESULT" "$PYTHON_RESULT" "$WEB_RESULT"
+          printf 'Governance: %s\nRust: %s\nPython: %s\nWeb/WASM: %s\nCoverage: %s\nBuild: %s\n' \
+            "$GOVERNANCE_RESULT" "$RUST_RESULT" "$PYTHON_RESULT" "$WEB_RESULT" \
+            "$COVERAGE_RESULT" "$BUILD_RESULT"
           test "$GOVERNANCE_RESULT" = success
           test "$RUST_RESULT" = success
           test "$PYTHON_RESULT" = success
           test "$WEB_RESULT" = success
+          test "$COVERAGE_RESULT" = success
+          test "$BUILD_RESULT" = success
 
   coverage:
     name: Coverage

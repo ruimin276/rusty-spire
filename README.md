@@ -6,19 +6,22 @@ Rusty Spire v0.3 is a deterministic, offline Slay the Spire 2 isolated-combat
 engine, exact-search toolkit, CLI, and local-first Web application. Development
 is governed by the accepted requirements in [`specs/`](specs/README.md); CI
 checks their traceability, generated contracts, crate boundaries, data-package
-reproducibility, behavior, coverage, and performance.
+reproducibility, behavior, builds, and coverage. Repository tasks are routed
+for coding agents through [`AGENTS.md`](AGENTS.md).
 
 ## Architecture
 
-The active Rust workspace has explicit one-way boundaries:
+The active Rust workspace has explicit one-way boundaries. Here `A -> B` means
+“A depends on B”:
 
 ```text
-rusty-spire-core <- rusty-spire-data <- rusty-spire-combat <- rusty-spire-simulator
-                                                        ^              ^
-                                                        |              |
-                                             rusty-spire-api <- rusty-spire-heuristics
-                                                    ^  ^
-                                                   CLI WASM <- apps/web
+cli -> api <- wasm <- web
+api -> {core, data, combat, simulator, heuristics}
+heuristics -> {core, simulator}
+simulator -> {core, data, combat}
+combat -> {core, data}
+data -> core
+core -> {}
 ```
 
 - `rusty-spire-core`: state, decisions, actions, typed IDs, RNG, canonical IDs.
@@ -81,6 +84,7 @@ python3 tools/specs/check.py
 python3 tools/specs/generate_contracts.py --check
 python3 tools/specs/check_architecture.py
 python3 tools/spire-codex/verify.py
+python3 -m unittest discover -s tools/specs/tests -v
 
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings

@@ -1,35 +1,182 @@
 {
   "schema_version": 1,
   "checks": {
-    "check:architecture": {"command": "python3 tools/specs/check_architecture.py", "sources": ["tools/specs/check_architecture.py"]},
-    "test:api_errors": {"command": "cargo test -p rusty-spire-api", "sources": ["crates/rusty-spire-api/src/lib.rs"]},
-    "test:api_v1": {"command": "cargo test -p rusty-spire-api", "sources": ["crates/rusty-spire-api/src/lib.rs"]},
-    "test:branch_isolation": {"command": "cargo test -p rusty-spire-combat", "sources": ["crates/rusty-spire-combat/src/engine.rs"]},
-    "test:canonical_state_id": {"command": "cargo test -p rusty-spire-core -p rusty-spire-combat", "sources": ["crates/rusty-spire-core/src/canonical.rs", "crates/rusty-spire-combat/src/engine.rs"]},
-    "test:cli": {"command": "cargo test -p rusty-spire-cli", "sources": ["apps/cli/tests/cli.rs"]},
-    "test:cli_legacy": {"command": "cargo test -p rusty-spire-cli", "sources": ["apps/cli/tests/cli.rs"]},
-    "test:cli_wasm_parity": {"command": "cargo test -p rusty-spire-cli -p rusty-spire-wasm", "sources": ["apps/cli/tests/cli.rs", "crates/rusty-spire-wasm/src/lib.rs"]},
-    "test:combat": {"command": "cargo test -p rusty-spire-combat", "sources": ["crates/rusty-spire-combat/src/engine.rs", "crates/rusty-spire-combat/src/setup.rs"]},
-    "test:combat_initialize": {"command": "cargo test -p rusty-spire-combat", "sources": ["crates/rusty-spire-combat/src/setup.rs"]},
-    "test:combat_transitions": {"command": "cargo test -p rusty-spire-combat", "sources": ["crates/rusty-spire-combat/src/engine.rs"]},
-    "test:core": {"command": "cargo test -p rusty-spire-core", "sources": ["crates/rusty-spire-core/src/lib.rs"]},
-    "test:core_invariants": {"command": "cargo test -p rusty-spire-core", "sources": ["crates/rusty-spire-core/src/state.rs", "crates/rusty-spire-core/src/id.rs"]},
-    "test:data_evidence": {"command": "python3 -m unittest tools/specs/tests/test_governance.py", "sources": ["tools/specs/tests/test_governance.py"]},
-    "test:data_package": {"command": "cargo test -p rusty-spire-data", "sources": ["crates/rusty-spire-data/src/lib.rs"]},
-    "test:data_verify": {"command": "python3 tools/spire-codex/verify.py", "sources": ["tools/spire-codex/verify.py"]},
-    "test:effect_validation": {"command": "cargo test -p rusty-spire-data -p rusty-spire-combat", "sources": ["crates/rusty-spire-data/src/lib.rs", "crates/rusty-spire-combat/src/engine.rs"]},
-    "test:exact_search": {"command": "cargo test -p rusty-spire-simulator", "sources": ["crates/rusty-spire-simulator/src/search.rs", "crates/rusty-spire-simulator/tests/silent_weak_matrix.rs"]},
-    "test:heuristics": {"command": "cargo test -p rusty-spire-heuristics -p rusty-spire-simulator", "sources": ["crates/rusty-spire-heuristics/src/lib.rs", "crates/rusty-spire-simulator/src/search.rs"]},
-    "test:proof_slice_cards": {"command": "cargo test -p rusty-spire-combat", "sources": ["crates/rusty-spire-combat/src/engine.rs"]},
-    "test:rng": {"command": "cargo test -p rusty-spire-core -p rusty-spire-combat", "sources": ["crates/rusty-spire-core/src/rng.rs", "crates/rusty-spire-combat/src/engine.rs"]},
-    "test:schemas": {"command": "python3 tools/specs/generate_contracts.py --check", "sources": ["tools/specs/generate_contracts.py", "tools/specs/tests/test_governance.py"]},
-    "test:search_modes": {"command": "cargo test -p rusty-spire-simulator", "sources": ["crates/rusty-spire-simulator/src/search.rs"]},
-    "test:spire_codex_fetch": {"command": "python3 -m unittest discover -s tools/spire-codex/tests", "sources": ["tools/spire-codex/tests/test_sync.py"]},
-    "test:spire_codex_tools": {"command": "python3 -m unittest discover -s tools/spire-codex/tests", "sources": ["tools/spire-codex/tests/test_sync.py", "tools/spire-codex/verify.py"]},
-    "test:unsupported_content": {"command": "cargo test -p rusty-spire-combat -p rusty-spire-api", "sources": ["crates/rusty-spire-combat/src/engine.rs", "crates/rusty-spire-api/src/lib.rs"]},
-    "test:wasm_legacy": {"command": "cargo test -p rusty-spire-wasm", "sources": ["crates/rusty-spire-wasm/src/lib.rs", "apps/web/tests/wasm-solver.test.mjs"]},
-    "test:web": {"command": "npm test --prefix apps/web", "sources": ["apps/web/tests/static-build.test.mjs", "apps/web/tests/wasm-solver.test.mjs"]},
-    "test:web_content_manifest": {"command": "npm test --prefix apps/web", "sources": ["apps/web/tests/static-build.test.mjs", "apps/web/src/simulator-worker.ts"]},
-    "test:workspace": {"command": "cargo test --workspace --all-features --locked", "sources": ["Cargo.toml"]}
+    "check:architecture": {
+      "command": "python3 tools/specs/check_architecture.py",
+      "sources": ["tools/specs/check_architecture.py"]
+    },
+    "check:coverage": {
+      "command": "cargo llvm-cov --package rusty-spire-core --package rusty-spire-data --package rusty-spire-combat --package rusty-spire-simulator --package rusty-spire-heuristics --package rusty-spire-api --package rusty-spire-cli --all-features --locked --no-report && cargo llvm-cov report --summary-only --fail-under-lines 85",
+      "sources": [".github/workflows/ci.yml"]
+    },
+    "check:data_verify": {
+      "command": "python3 tools/spire-codex/verify.py",
+      "sources": ["tools/spire-codex/verify.py", "tools/spire-codex/promote.py"]
+    },
+    "check:schemas": {
+      "command": "python3 tools/specs/generate_contracts.py --check",
+      "sources": ["tools/specs/generate_contracts.py", "tools/specs/tests/test_governance.py"]
+    },
+    "check:specifications": {
+      "command": "python3 tools/specs/check.py",
+      "sources": ["tools/specs/check.py", "tools/specs/tests/test_governance.py"]
+    },
+    "check:no_performance_gate": {
+      "command": "python3 -m unittest tools/specs/tests/test_governance.py -k no_performance_gate",
+      "sources": ["tools/specs/tests/test_governance.py", ".github/workflows/ci.yml"],
+      "symbols": ["test_ci_has_no_performance_gate"]
+    },
+    "check:rust_quality": {
+      "command": "cargo fmt --all -- --check && cargo clippy --workspace --all-targets --all-features --locked -- -D warnings && cargo clippy --target wasm32-unknown-unknown -p rusty-spire-wasm --locked -- -D warnings && cargo test --workspace --all-features --locked --no-fail-fast",
+      "sources": [".github/workflows/ci.yml", "Cargo.toml"]
+    },
+    "check:release_artifacts": {
+      "command": "cargo build --workspace --release --locked && target/release/rusty-spire --version && npm --prefix apps/web run check:wasm-fingerprint && RUSTY_SPIRE_WASM_PATH=public/rusty_spire_wasm.wasm node --test apps/web/tests/wasm-solver.test.mjs && npm --prefix apps/web run build && test -f apps/web/dist/index.html && test -f apps/web/dist/rusty_spire_wasm.wasm",
+      "sources": [".github/workflows/ci.yml", "apps/web/package.json", "apps/web/tests/wasm-solver.test.mjs", "apps/web/tests/static-build.test.mjs"]
+    },
+    "check:wasm_fingerprint": {
+      "command": "npm --prefix apps/web run check:wasm-fingerprint",
+      "sources": ["apps/web/scripts/wasm-fingerprint.mjs", ".github/workflows/ci.yml"]
+    },
+    "test:api_errors": {
+      "command": "cargo test -p rusty-spire-api package_mismatch_has_stable_error_code",
+      "sources": ["crates/rusty-spire-api/src/lib.rs"],
+      "symbols": ["package_mismatch_has_stable_error_code"]
+    },
+    "test:api_v1": {
+      "command": "cargo test -p rusty-spire-api",
+      "sources": ["crates/rusty-spire-api/src/lib.rs"],
+      "symbols": ["embedded_manifest_drives_supported_content", "v2_proof_slice_request_solves_exactly", "snapshot_v3_state_id_is_canonical_and_schema_guarded"]
+    },
+    "test:branch_isolation": {
+      "command": "cargo test -p rusty-spire-combat",
+      "sources": ["crates/rusty-spire-combat/src/engine.rs"],
+      "symbols": ["branch_order_cannot_change_repeated_transition", "replaying_the_same_exhaust_choice_preserves_the_draw_sequence"]
+    },
+    "test:canonical_state_id": {
+      "command": "cargo test -p rusty-spire-core -p rusty-spire-combat",
+      "sources": ["crates/rusty-spire-core/src/canonical.rs", "crates/rusty-spire-combat/src/engine.rs"],
+      "symbols": ["object_declaration_order_does_not_change_state_id", "canonical_hot_path_preserves_v02_state_hashes", "hash_distinguishes_rng_counters"]
+    },
+    "test:cli": {
+      "command": "cargo test -p rusty-spire-cli",
+      "sources": ["apps/cli/tests/cli.rs"],
+      "symbols": ["validate_and_catalog_info_report_identity", "compare_reports_hp_loss_delta", "malformed_and_multi_enemy_inputs_fail_closed"]
+    },
+    "test:cli_legacy": {
+      "command": "cargo test -p rusty-spire-cli",
+      "sources": ["apps/cli/tests/cli.rs"],
+      "symbols": ["solve_supports_default_explicit_and_incomplete_searches", "converted_ironclad_nibbit_golden_keeps_the_verified_outcome"]
+    },
+    "test:combat": {
+      "command": "cargo test -p rusty-spire-combat",
+      "sources": ["crates/rusty-spire-combat/src/engine.rs", "crates/rusty-spire-combat/src/setup.rs"],
+      "symbols": ["supported_mechanics_match_the_pinned_spire_codex_contract", "catalog_drives_ascension_moves_and_inert_relics", "identical_setup_replays_opening_actions_and_hash"]
+    },
+    "test:combat_initialize": {
+      "command": "cargo test -p rusty-spire-combat setup::tests",
+      "sources": ["crates/rusty-spire-combat/src/setup.rs"],
+      "symbols": ["initializes_stable_instances_and_rng_vectors", "catalog_encounter_rolls_omitted_hp_from_monster_stream", "rejects_catalog_mismatch_deferred_fields_and_debug_overrides"]
+    },
+    "test:combat_transitions": {
+      "command": "cargo test -p rusty-spire-combat engine::tests",
+      "sources": ["crates/rusty-spire-combat/src/engine.rs"],
+      "symbols": ["bash_then_strike_uses_vulnerable", "survivor_resolves_its_discard_as_a_branchable_choice", "changing_reshuffle_membership_changes_only_expected_rng_consumption"]
+    },
+    "test:core": {
+      "command": "cargo test -p rusty-spire-core",
+      "sources": ["crates/rusty-spire-core/src/id.rs", "crates/rusty-spire-core/src/rng.rs", "crates/rusty-spire-core/src/canonical.rs"],
+      "symbols": ["validates_namespaced_model_ids", "named_stream_derivation_is_stable_and_separated", "object_declaration_order_does_not_change_state_id"]
+    },
+    "test:core_invariants": {
+      "command": "cargo test -p rusty-spire-combat",
+      "sources": ["crates/rusty-spire-combat/src/setup.rs", "crates/rusty-spire-combat/src/engine.rs"],
+      "symbols": ["strict_schema_rejects_drift", "rejects_unknown_ids_and_multi_enemy_execution", "ascension_level_must_match_enemy_tier_flags"]
+    },
+    "test:data_evidence": {
+      "command": "python3 -m unittest tools/specs/tests/test_governance.py",
+      "sources": ["tools/specs/tests/test_governance.py"],
+      "symbols": ["test_package_promotion_is_deterministic_and_contains_proof_slice"]
+    },
+    "test:data_package": {
+      "command": "cargo test -p rusty-spire-data",
+      "sources": ["crates/rusty-spire-data/src/lib.rs"],
+      "symbols": ["loads_grouped_package_and_validates_effect_vocabulary", "raw_byte_sha_changes_with_equivalent_json_formatting", "rejects_unknown_effect_power"]
+    },
+    "test:effect_validation": {
+      "command": "cargo test -p rusty-spire-data -p rusty-spire-combat",
+      "sources": ["crates/rusty-spire-data/src/lib.rs", "crates/rusty-spire-combat/src/engine.rs"],
+      "symbols": ["rejects_unknown_effect_power", "composable_effect_cards_follow_reviewed_order_and_upgrades"]
+    },
+    "test:exact_search": {
+      "command": "cargo test -p rusty-spire-simulator",
+      "sources": ["crates/rusty-spire-simulator/src/search.rs", "crates/rusty-spire-simulator/tests/silent_weak_matrix.rs"],
+      "symbols": ["optimal_trace_is_independent_of_action_enumeration_order", "converted_silent_weak_seed_matrix_keeps_equivalent_optima"]
+    },
+    "test:heuristics": {
+      "command": "cargo test -p rusty-spire-heuristics -p rusty-spire-simulator",
+      "sources": ["crates/rusty-spire-heuristics/src/lib.rs", "crates/rusty-spire-simulator/src/search.rs"],
+      "symbols": ["terminal_state_has_zero_remaining_hp", "exact_results_are_heuristic_independent"]
+    },
+    "test:proof_slice_cards": {
+      "command": "cargo test -p rusty-spire-combat composable_effect_cards_follow_reviewed_order_and_upgrades",
+      "sources": ["crates/rusty-spire-combat/src/engine.rs"],
+      "symbols": ["composable_effect_cards_follow_reviewed_order_and_upgrades"]
+    },
+    "test:rng": {
+      "command": "cargo test -p rusty-spire-core -p rusty-spire-combat",
+      "sources": ["crates/rusty-spire-core/src/rng.rs", "crates/rusty-spire-combat/src/engine.rs", "crates/rusty-spire-combat/src/setup.rs"],
+      "symbols": ["xoshiro_counter_reconstruction_is_branchable", "initial_fisher_yates_matches_seeded_xoshiro_vector", "initializes_stable_instances_and_rng_vectors"]
+    },
+    "test:search_modes": {
+      "command": "cargo test -p rusty-spire-simulator approximate_mode_never_claims_optimality",
+      "sources": ["crates/rusty-spire-simulator/src/search.rs"],
+      "symbols": ["approximate_mode_never_claims_optimality"]
+    },
+    "test:shared_service": {
+      "command": "cargo test -p rusty-spire-cli versioned_api_exposes_embedded_content_without_a_legacy_warning && npm --prefix apps/web test",
+      "sources": ["apps/cli/tests/cli.rs", "apps/web/tests/wasm-solver.test.mjs"],
+      "symbols": ["versioned_api_exposes_embedded_content_without_a_legacy_warning", "serves content through the versioned dispatcher"]
+    },
+    "test:spire_codex_fetch": {
+      "command": "python3 -m unittest discover -s tools/spire-codex/tests",
+      "sources": ["tools/spire-codex/tests/test_sync.py"],
+      "symbols": ["test_snapshot_saves_raw_normalized_and_provenance", "test_identical_content_reuses_latest_snapshot", "test_beta_channel_is_versioned_and_kept_separate"]
+    },
+    "test:spire_codex_tools": {
+      "command": "python3 -m unittest discover -s tools/spire-codex/tests",
+      "sources": ["tools/spire-codex/tests/test_sync.py"],
+      "symbols": ["test_catalog_build_is_reviewed_and_deterministic", "test_schema_drift_is_rejected_before_writing", "test_rate_limit_is_retried"]
+    },
+    "test:spec_tools": {
+      "command": "python3 -m unittest discover -s tools/specs/tests -v",
+      "sources": ["tools/specs/tests/test_governance.py"],
+      "symbols": ["test_ci_has_no_performance_gate", "test_generated_contract_outputs_are_current", "test_package_promotion_is_deterministic_and_contains_proof_slice", "test_spec_checker_rejects_duplicate_and_unnumbered_normative_rules"]
+    },
+    "test:unsupported_content": {
+      "command": "cargo test -p rusty-spire-combat -p rusty-spire-api",
+      "sources": ["crates/rusty-spire-combat/src/setup.rs", "crates/rusty-spire-api/src/lib.rs"],
+      "symbols": ["rejects_unknown_ids_and_multi_enemy_execution", "rejects_catalog_mismatch_deferred_fields_and_debug_overrides", "package_mismatch_has_stable_error_code"]
+    },
+    "test:wasm_legacy": {
+      "command": "npm --prefix apps/web test",
+      "sources": ["apps/web/tests/wasm-solver.test.mjs"],
+      "symbols": ["executes the Rust optimal search through the browser ABI"]
+    },
+    "test:web": {
+      "command": "npm --prefix apps/web test",
+      "sources": ["apps/web/tests/static-build.test.mjs", "apps/web/tests/wasm-solver.test.mjs"],
+      "symbols": ["builds a portable static document", "ships the simulator contract in the browser bundle", "executes the Rust optimal search through the browser ABI"]
+    },
+    "test:web_content_manifest": {
+      "command": "npm --prefix apps/web test",
+      "sources": ["apps/web/tests/static-build.test.mjs", "apps/web/tests/wasm-solver.test.mjs"],
+      "symbols": ["ships the supported Spire Codex artwork", "serves content through the versioned dispatcher"]
+    },
+    "test:workspace": {
+      "command": "cargo test --workspace --all-features --locked",
+      "sources": ["crates/rusty-spire-simulator/tests/silent_weak_matrix.rs", "apps/cli/tests/cli.rs"],
+      "symbols": ["converted_silent_weak_seed_matrix_keeps_equivalent_optima", "solve_supports_default_explicit_and_incomplete_searches"]
+    }
   }
 }
