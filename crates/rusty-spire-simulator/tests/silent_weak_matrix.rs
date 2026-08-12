@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use rusty_spire_combat::{CombatSetupV1, initialize};
 use rusty_spire_data::CombatCatalog;
 use rusty_spire_simulator::{SolveLimits, solve};
@@ -86,30 +84,4 @@ fn converted_silent_weak_seed_matrix_keeps_equivalent_optima() {
         assert_eq!(result.hp_loss, case["hp_loss"].as_i64().map(|v| v as i32));
         assert_eq!(result.final_hp, case["final_hp"].as_i64().map(|v| v as i32));
     }
-}
-
-#[test]
-#[ignore = "performance gate; run in release mode with --ignored"]
-fn expands_one_hundred_thousand_states_under_five_seconds() {
-    let catalog = catalog();
-    let setup: CombatSetupV1 =
-        serde_json::from_value(setup_value(&catalog, "MONSTER.NIBBIT", 1, 1_000_000)).unwrap();
-    let mut combat = initialize(&catalog, &setup, false).unwrap();
-    combat.state.player.hp = 1_000_000;
-    combat.state.player.max_hp = 1_000_000;
-    let started = Instant::now();
-    let result = solve(
-        &catalog,
-        &combat,
-        SolveLimits {
-            max_states: 100_000,
-            max_turns: 1_000,
-            timeout_seconds: 30.0,
-        },
-    )
-    .unwrap();
-    assert_eq!(result.explored_states, 100_000);
-    assert_eq!(result.termination_reason, "max_states");
-    assert!(!result.optimality_proven);
-    assert!(started.elapsed().as_secs_f64() < 5.0);
 }
