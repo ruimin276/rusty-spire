@@ -1,0 +1,12 @@
+[package]
+name = "rusty-spire-heuristics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rusty-spire-core = { path = "../rusty-spire-core" }
+rusty-spire-simulator = { path = "../rusty-spire-simulator" }
+
+[dev-dependencies]
+serde_json.workspace = true

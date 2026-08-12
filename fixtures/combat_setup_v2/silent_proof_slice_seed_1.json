@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "package": {
+    "package_id": "spire-codex-stable-v0.107.1",
+    "sha256": "a85e5e0222f1d7fb49827b3d22b46621593f7da4053e301c5dc55cbde0dee44c"
+  },
+  "ascension_level": 0,
+  "rng": {
+    "run_seed": "1",
+    "profile": "isolated_combat_xoshiro_v1"
+  },
+  "character": {
+    "id": "CHARACTER.SILENT",
+    "current_hp": 70,
+    "max_hp": 70
+  },
+  "deck": [
+    {"id": "CARD.STRIKE_SILENT", "quantity": 5, "upgrade_level": 0},
+    {"id": "CARD.DEFEND_SILENT", "quantity": 5, "upgrade_level": 0},
+    {"id": "CARD.NEUTRALIZE", "quantity": 1, "upgrade_level": 0},
+    {"id": "CARD.SURVIVOR", "quantity": 1, "upgrade_level": 0},
+    {"id": "CARD.BACKFLIP", "quantity": 1, "upgrade_level": 0},
+    {"id": "CARD.ADRENALINE", "quantity": 1, "upgrade_level": 0}
+  ],
+  "relics": [{"id": "RELIC.RING_OF_THE_SNAKE"}],
+  "potions": [],
+  "encounter": {
+    "type": "custom",
+    "enemies": [{"id": "MONSTER.NIBBIT", "current_hp": 44, "max_hp": 44}]
+  }
+}

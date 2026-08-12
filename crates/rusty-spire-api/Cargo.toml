@@ -1,0 +1,15 @@
+[package]
+name = "rusty-spire-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rusty-spire-core = { path = "../rusty-spire-core" }
+rusty-spire-data = { path = "../rusty-spire-data" }
+rusty-spire-combat = { path = "../rusty-spire-combat" }
+rusty-spire-simulator = { path = "../rusty-spire-simulator" }
+rusty-spire-heuristics = { path = "../rusty-spire-heuristics" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

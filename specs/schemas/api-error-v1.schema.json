@@ -1,0 +1,30 @@
+{
+  "$id": "https://rusty-spire.dev/schemas/api-error-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "enum": [
+        "invalid_json",
+        "invalid_request",
+        "package_mismatch",
+        "unknown_id",
+        "unsupported",
+        "invalid_action",
+        "internal"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "code",
+    "message"
+  ],
+  "type": "object"
+}
