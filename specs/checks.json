@@ -9,6 +9,10 @@
       "command": "cargo llvm-cov --package rusty-spire-core --package rusty-spire-data --package rusty-spire-combat --package rusty-spire-simulator --package rusty-spire-heuristics --package rusty-spire-api --package rusty-spire-cli --all-features --locked --no-report && cargo llvm-cov report --summary-only --fail-under-lines 85",
       "sources": [".github/workflows/ci.yml"]
     },
+    "check:content_status": {
+      "command": "python3 tools/specs/generate_content_status.py --check",
+      "sources": ["tools/specs/generate_content_status.py", "specs/content/implemented-v1.json", "specs/content/published-v1.json", "tools/specs/tests/test_governance.py"]
+    },
     "check:data_verify": {
       "command": "python3 tools/spire-codex/verify.py",
       "sources": ["tools/spire-codex/verify.py", "tools/spire-codex/promote.py"]
@@ -128,6 +132,11 @@
       "sources": ["crates/rusty-spire-core/src/rng.rs", "crates/rusty-spire-combat/src/engine.rs", "crates/rusty-spire-combat/src/setup.rs"],
       "symbols": ["xoshiro_counter_reconstruction_is_branchable", "initial_fisher_yates_matches_seeded_xoshiro_vector", "initializes_stable_instances_and_rng_vectors"]
     },
+    "test:replay": {
+      "command": "cargo test -p rusty-spire-combat enemy_intent_is_effective_and_does_not_advance_state && cargo test -p rusty-spire-api winning_replay_matches_the_search_trace && npm --prefix apps/web test",
+      "sources": ["crates/rusty-spire-combat/src/engine.rs", "crates/rusty-spire-api/src/lib.rs", "apps/web/app/combat-replay.tsx", "apps/web/tests/wasm-solver.test.mjs", "apps/web/tests/static-build.test.mjs"],
+      "symbols": ["enemy_intent_is_effective_and_does_not_advance_state", "winning_replay_matches_the_search_trace", "serves an interactive replay through the versioned dispatcher", "ships the interactive combat replay"]
+    },
     "test:search_modes": {
       "command": "cargo test -p rusty-spire-simulator approximate_mode_never_claims_optimality",
       "sources": ["crates/rusty-spire-simulator/src/search.rs"],
@@ -151,7 +160,7 @@
     "test:spec_tools": {
       "command": "python3 -m unittest discover -s tools/specs/tests -v",
       "sources": ["tools/specs/tests/test_governance.py"],
-      "symbols": ["test_ci_has_no_performance_gate", "test_generated_contract_outputs_are_current", "test_package_promotion_is_deterministic_and_contains_proof_slice", "test_spec_checker_rejects_duplicate_and_unnumbered_normative_rules"]
+      "symbols": ["test_ci_has_no_performance_gate", "test_content_status_ledgers_cover_implemented_and_inert_publication", "test_generated_contract_outputs_are_current", "test_package_promotion_is_deterministic_and_contains_proof_slice", "test_spec_checker_rejects_duplicate_and_unnumbered_normative_rules"]
     },
     "test:unsupported_content": {
       "command": "cargo test -p rusty-spire-combat -p rusty-spire-api",

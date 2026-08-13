@@ -9,6 +9,9 @@
         "remaining_enemy_hp"
       ]
     },
+    "include_replay": {
+      "type": "boolean"
+    },
     "limits": {
       "type": "object"
     },

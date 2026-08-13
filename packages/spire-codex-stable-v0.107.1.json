@@ -207,6 +207,7 @@
       "name": "Adrenaline"
     },
     "CARD.ASCENDERS_BANE": {
+      "asset": "spire-codex/cards/ascenders_bane.webp",
       "card_type": "Curse",
       "character": null,
       "cost": -1,
@@ -553,6 +554,7 @@
         "name": "Ring of the Snake"
       },
       "RELIC.WINGED_BOOTS": {
+        "asset": "spire-codex/relics/winged_boots.webp",
         "combat_effect": {
           "type": "inert"
         },

@@ -22,6 +22,9 @@ def load_module(name: str, path: Path):
 
 promote = load_module("promote", ROOT / "tools/spire-codex/promote.py")
 contracts = load_module("generate_contracts", ROOT / "tools/specs/generate_contracts.py")
+content_status = load_module(
+    "generate_content_status", ROOT / "tools/specs/generate_content_status.py"
+)
 spec_checker = load_module("spec_checker", ROOT / "tools/specs/check.py")
 
 
@@ -118,6 +121,27 @@ Exercises structural validation.
     def test_generated_contract_outputs_are_current(self) -> None:
         for path, expected in contracts.outputs().items():
             self.assertEqual(path.read_text(encoding="utf-8"), expected)
+
+    def test_content_status_ledgers_cover_implemented_and_inert_publication(self) -> None:
+        self.assertEqual(
+            content_status.PUBLISHED.read_text(encoding="utf-8"),
+            content_status.encoded(),
+        )
+        published = content_status.published_document()
+        self.assertEqual(len(published["cards"]), 12)
+        self.assertEqual(len(published["relics"]), 3)
+        self.assertEqual(
+            published["cards"]["CARD.ADRENALINE"]["implementation_status"],
+            "implemented",
+        )
+        self.assertEqual(
+            published["relics"]["RELIC.RING_OF_THE_SNAKE"]["implementation_status"],
+            "implemented",
+        )
+        self.assertEqual(
+            published["relics"]["RELIC.BURNING_BLOOD"]["implementation_status"],
+            "recognized_inert",
+        )
 
 
 if __name__ == "__main__":

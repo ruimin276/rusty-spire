@@ -388,8 +388,8 @@ def main() -> None:
         if not isinstance(schema_id, str) or schema_id in schema_ids:
             raise ValueError(f"{path.relative_to(ROOT)} has a missing or duplicate $id")
         schema_ids.add(schema_id)
-    if len(schema_ids) < 5:
-        raise ValueError("expected the five versioned public schemas")
+    if len(schema_ids) < 6:
+        raise ValueError("expected the six versioned public schemas")
 
     spec_ids: set[str] = set()
     spec_paths: dict[str, Path] = {}

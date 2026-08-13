@@ -74,6 +74,11 @@ powers and starter relic behavior are preserved. The reviewed composable-effect
 slice adds Iron Wave, Backflip, Pommel Strike, and Adrenaline, including both
 upgrade levels and declared effect order.
 
+The reviewed [implementation ledger](specs/content/implemented-v1.json) and
+generated [publication ledger](specs/content/published-v1.json) show exactly which
+card and relic mechanics are realized and which are distributed in the stable
+package.
+
 Potions, multiple-enemy execution, map/reward/run progression, gameplay mods,
 and unreviewed content fail closed.
 
@@ -82,6 +87,7 @@ and unreviewed content fail closed.
 ```bash
 python3 tools/specs/check.py
 python3 tools/specs/generate_contracts.py --check
+python3 tools/specs/generate_content_status.py --check
 python3 tools/specs/check_architecture.py
 python3 tools/spire-codex/verify.py
 python3 -m unittest discover -s tools/specs/tests -v

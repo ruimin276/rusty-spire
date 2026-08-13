@@ -2,6 +2,8 @@ import type { BrowserSolveResult, CombatSetupV2, ContentManifest } from "./contr
 
 export type * from "./contracts.generated";
 
+declare const __RUSTY_SPIRE_WASM_FINGERPRINT__: string;
+
 type SolveLimits = { maxStates?: number; maxTurns?: number; timeoutMilliseconds?: number };
 type WorkerReply =
   | { id: number; ok: true; value: unknown }
@@ -39,10 +41,12 @@ function callSimulator<T>(operation: unknown): Promise<T> {
   const request = new Promise<T>((resolve, reject) => {
     pending.set(id, { resolve: resolve as (value: unknown) => void, reject });
   });
+  const wasmUrl = new URL("rusty_spire_wasm.wasm", document.baseURI);
+  wasmUrl.searchParams.set("v", __RUSTY_SPIRE_WASM_FINGERPRINT__);
   simulatorWorker().postMessage({
     id,
     operation,
-    wasmUrl: new URL("rusty_spire_wasm.wasm", document.baseURI).href,
+    wasmUrl: wasmUrl.href,
   });
   return request;
 }
@@ -63,6 +67,7 @@ export function solveCombat(
       policy: "minimize_hp_loss",
       mode: "exact",
       heuristic: "zero",
+      include_replay: true,
       limits: {
         max_states: maxStates,
         max_turns: maxTurns,

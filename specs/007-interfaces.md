@@ -3,7 +3,7 @@ id: SPEC-007
 title: Versioned Application and Wire Interfaces
 status: accepted
 domain: interfaces
-version: 1
+version: 2
 applies_to: v0.3
 depends: [SPEC-001, SPEC-002, SPEC-003, SPEC-005, SPEC-006]
 sources: [crates/rusty-spire-api/src/lib.rs, crates/rusty-spire-wasm/src/lib.rs, apps/cli/src/main.rs, apps/web/src/simulator-worker.ts, specs/schemas]
@@ -52,7 +52,7 @@ v0.3. They are not yet independent implementations or compatibility facades.
 | Contract | Required fields and behavior | Current limitation |
 |---|---|---|
 | `CombatSetupV2` | Version 2, `{package_id, sha256}`, RNG, character, deck, relics, empty potions, encounter | Internally adapts to `CombatSetupV1` before initialization |
-| `SolveRequestV1` | Version 1, setup, policy, mode, heuristic, limits | Only `minimize_hp_loss` is accepted |
+| `SolveRequestV1` | Version 1, setup, policy, mode, heuristic, limits, optional `include_replay` | Only `minimize_hp_loss` is accepted |
 | `CompareRequestV1` | Version 1, baseline, candidate, policy, limits | No mode/heuristic fields; current comparison uses exact zero-heuristic solve |
 | `PackageIdentityV1` | Non-empty package ID and exact package SHA-256 | Identity must match the loaded package |
 
@@ -62,7 +62,7 @@ fail before combat initialization. `CombatSetupV2` MUST contain combat inputs on
 search choices belong to solve or compare requests.
 
 Defaults are part of the v1 request contract: exact search, zero heuristic,
-`minimize_hp_loss`, and `SolveLimits::default()`. A caller that relies on a default
+`minimize_hp_loss`, `SolveLimits::default()`, and `include_replay: false`. A caller that relies on a default
 still receives the same completeness and proof semantics defined by SPEC-006.
 
 ### API-002 — Expose tagged outputs and stable service errors
@@ -71,7 +71,7 @@ still receives the same completeness and proof semantics defined by SPEC-006.
 |---|---|
 | `CombatActionV1` | `type`-tagged `card`, `end_turn`, or `choose` variant |
 | `CombatSnapshotV3` | Version 3 wrapper around the current `CombatState` |
-| `SolveResponseV1` | Version, `SolveResult`, opening hand IDs, tagged actions |
+| `SolveResponseV1` | Version, `SolveResult`, opening hand IDs, tagged actions, optional winning replay |
 | `CompareResponseV1` | Version and `CompareResult` |
 | `ContentManifestV1` | Package, game version, characters, cards, enemies, relics |
 | `ApiErrorV1` | Version 1, stable code, human message |
@@ -88,11 +88,20 @@ gain detail, but consumers MUST branch only on the code. `CombatSnapshotV3::stat
 MUST reject wrapper versions other than 3 and derive identity using the canonical
 state rule in SPEC-003.
 
-The committed generator currently emits five schemas: `CombatSetupV2`,
-`SolveRequestV1`, `ApiErrorV1`, `ContentManifestV1`, and `CombatSnapshotV3`.
-Nested setup objects, manifest array items, solve limits, and snapshot state are only
-shallowly constrained; there are no generated schemas yet for compare, actions, or
-responses. Runtime Rust DTO validation remains authoritative for those details.
+When `include_replay` is true and solve returns a winning line, the response MUST
+contain frame zero for the initialized state followed by one frame per action. Each
+frame contains combat status, decision, actor summaries, powers, every card pile,
+current effective enemy intent, and canonical state identity. End-turn frames also
+record the intent resolved by that action. Every post-action identity MUST match its
+search trace hash. Non-winning and incomplete results omit replay. Replay generation
+MUST NOT change search selection or legacy output.
+
+The committed generator currently emits six schemas: `CombatSetupV2`,
+`SolveRequestV1`, `SolveResponseV1`, `ApiErrorV1`, `ContentManifestV1`, and
+`CombatSnapshotV3`. Nested setup objects, manifest array items, solve limits,
+snapshot state, and replay objects are only shallowly constrained; there are no
+generated schemas yet for compare or standalone actions. Runtime Rust DTO validation
+remains authoritative for those details.
 Tests and documentation MUST NOT claim full JSON Schema coverage until the generator
 actually emits complete shapes.
 
@@ -176,8 +185,8 @@ and matching tests.
 | Requirement | Automated evidence | Review evidence |
 |---|---|---|
 | API-001 | `test:api_v1`, `test:unsupported_content` | V2 adaptation and compare limitations match code |
-| API-002 | `test:api_errors`, `check:schemas`, `test:canonical_state_id` | Schema coverage is not overstated |
-| API-003 | `test:shared_service`, `test:api_v1` | CLI and WASM both delegate to the service dispatcher |
+| API-002 | `test:api_errors`, `check:schemas`, `test:canonical_state_id`, `test:replay` | Schema coverage is not overstated; replay identities match the search trace |
+| API-003 | `test:shared_service`, `test:api_v1`, `test:replay` | CLI and WASM both delegate to the service dispatcher |
 | API-004 | `test:cli_legacy`, `test:wasm_legacy` | Deprecation and output selection remain intact |
 | API-005 | `test:web_content_manifest`, `test:web` | No copied identity; error-code loss remains explicit |
 

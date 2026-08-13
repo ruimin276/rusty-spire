@@ -3,10 +3,10 @@ id: SPEC-008
 title: CLI Web and Data Tool Responsibilities
 status: accepted
 domain: applications
-version: 1
+version: 2
 applies_to: v0.3
 depends: [SPEC-001, SPEC-002, SPEC-004, SPEC-007]
-sources: [apps/cli/src/main.rs, apps/web/src/simulator.ts, apps/web/src/simulator-worker.ts, tools/spire-codex/fetch.py, tools/spire-codex/promote.py, tools/spire-codex/verify.py]
+sources: [apps/cli/src/main.rs, apps/web/app/combat-replay.tsx, apps/web/src/simulator.ts, apps/web/src/simulator-worker.ts, tools/spire-codex/fetch.py, tools/spire-codex/promote.py, tools/spire-codex/verify.py]
 ---
 
 # SPEC-008: CLI Web and Data Tool Responsibilities
@@ -69,6 +69,7 @@ requests and render results but MUST NOT execute or approximate combat mechanics
 | WASM lifetime | Worker lazily instantiates and caches one module instance |
 | Linear memory | Worker allocates, copies, calls, decodes, and frees both buffers |
 | Incomplete results | UI preserves completeness and proof flags |
+| Winning replay | Rust/WASM supplies frames and intent; React owns playback and inspection only |
 | Production hosting | Any static host; paths remain relative |
 
 The browser may fetch its own same-origin WASM and static assets. It MUST NOT upload
@@ -83,6 +84,15 @@ The page also retains protocol/UI constants for the RNG profile, ascension 8/10
 boundaries, and initial Silent/Nibbit selection because the current content manifest
 does not carry them. Those constants MUST NOT be treated as catalog authority, and
 selected IDs must resolve in the returned manifest before a solve request exists.
+
+Successful results MUST keep proof metrics visible and use the versioned replay as
+the primary result view. Replay opens paused at frame zero and provides direct
+step/turn selection, previous/next, play/pause, speed, keyboard navigation, actor
+HP/block/energy/powers, enemy intent, card artwork, and expandable pile/hash/raw
+trace details. Card inspection exposes upgrade, effective cost, pile, and instance
+identity. Manual navigation pauses playback, reduced motion disables decorative
+transitions, and narrow screens retain touch-usable controls. React MAY derive
+display deltas between supplied frames but MUST NOT calculate outcomes or intent.
 
 ### APP-003 — Separate fetch promotion and offline verification
 
@@ -117,7 +127,7 @@ promotion inputs and their committed files are checked by Web tests.
 | Requirement | Automated evidence | Review evidence |
 |---|---|---|
 | APP-001 | `test:cli`, `test:cli_legacy`, `test:api_v1` | Commands contain platform logic only |
-| APP-002 | `test:web`, `test:web_content_manifest`, `test:wasm_legacy` | Static/local behavior and error limitation match code |
+| APP-002 | `test:web`, `test:web_content_manifest`, `test:wasm_legacy`, `test:replay` | Static/local behavior, replay presentation, and error limitation match code |
 | APP-003 | `test:spire_codex_tools`, `check:data_verify`, `test:data_evidence` | CI uses verify, never fetch |
 
 ## References

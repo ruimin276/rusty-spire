@@ -10,6 +10,9 @@ domain specification needed for a task and its direct dependencies. Every
 accepted requirement maps through [traceability.json](traceability.json) to a
 command in [checks.json](checks.json).
 
+Card and relic realization/publication status is tracked in the
+[content ledgers](content/README.md).
+
 ## Accepted specifications
 
 | Spec | Title | Domain | Status | Requirements | Depends | Lines |
@@ -19,11 +22,11 @@ command in [checks.json](checks.json).
 | [SPEC-002](002-architecture.md) | Architecture and Crate Boundaries | architecture | ACCEPTED | ARC-001–ARC-004 | SPEC-001 | 211 |
 | [SPEC-003](003-domain.md) | Combat Domain and State Invariants | domain | ACCEPTED | DOM-001–DOM-004 | SPEC-002 | 246 |
 | [SPEC-004](004-data.md) | Spire Codex Evidence and Data Packages | data | ACCEPTED | DAT-001–DAT-004 | SPEC-001, SPEC-002 | 242 |
-| [SPEC-005](005-combat.md) | Combat Initialization and Transition Semantics | combat | ACCEPTED | CMB-001–CMB-004 | SPEC-003, SPEC-004 | 265 |
+| [SPEC-005](005-combat.md) | Combat Initialization and Transition Semantics | combat | ACCEPTED | CMB-001–CMB-005 | SPEC-003, SPEC-004 | 286 |
 | [SPEC-006](006-search.md) | Exact Search and Proof Semantics | search | ACCEPTED | SRCH-001–SRCH-004 | SPEC-003, SPEC-005 | 235 |
-| [SPEC-007](007-interfaces.md) | Versioned Application and Wire Interfaces | interfaces | ACCEPTED | API-001–API-005 | SPEC-001, SPEC-002, SPEC-003, SPEC-005, SPEC-006 | 192 |
-| [SPEC-008](008-products.md) | CLI Web and Data Tool Responsibilities | applications | ACCEPTED | APP-001–APP-003 | SPEC-001, SPEC-002, SPEC-004, SPEC-007 | 131 |
-| [SPEC-010](010-conformance.md) | Conformance and CI Policy | quality | ACCEPTED | CI-001–CI-006 | SPEC-000, SPEC-001, SPEC-002, SPEC-004, SPEC-007, SPEC-008 | 166 |
+| [SPEC-007](007-interfaces.md) | Versioned Application and Wire Interfaces | interfaces | ACCEPTED | API-001–API-005 | SPEC-001, SPEC-002, SPEC-003, SPEC-005, SPEC-006 | 201 |
+| [SPEC-008](008-products.md) | CLI Web and Data Tool Responsibilities | applications | ACCEPTED | APP-001–APP-003 | SPEC-001, SPEC-002, SPEC-004, SPEC-007 | 141 |
+| [SPEC-010](010-conformance.md) | Conformance and CI Policy | quality | ACCEPTED | CI-001–CI-006 | SPEC-000, SPEC-001, SPEC-002, SPEC-004, SPEC-007, SPEC-008 | 167 |
 
 ## Draft specifications
 
@@ -42,6 +45,7 @@ Run the offline governance gates from the repository root:
 ```bash
 python3 tools/specs/check.py
 python3 tools/specs/generate_contracts.py --check
+python3 tools/specs/generate_content_status.py --check
 python3 tools/spire-codex/verify.py
 python3 tools/specs/check_architecture.py
 ```

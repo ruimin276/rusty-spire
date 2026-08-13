@@ -1,0 +1,312 @@
+{
+  "applies_to": "v0.3",
+  "cards": {
+    "CARD.ADRENALINE": {
+      "checks": [
+        "test:combat",
+        "test:proof_slice_cards"
+      ],
+      "declared_effects": [
+        "energy",
+        "draw"
+      ],
+      "implementation_status": "implemented",
+      "name": "Adrenaline",
+      "realized_mechanics": [
+        "gain_energy",
+        "draw_cards",
+        "exhaust_after_resolution"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.ASCENDERS_BANE": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effects": [],
+      "implementation_status": "implemented",
+      "name": "Ascender's Bane",
+      "realized_mechanics": [
+        "unplayable",
+        "exhaust_during_end_turn_cleanup"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.BACKFLIP": {
+      "checks": [
+        "test:combat",
+        "test:proof_slice_cards"
+      ],
+      "declared_effects": [
+        "block",
+        "draw"
+      ],
+      "implementation_status": "implemented",
+      "name": "Backflip",
+      "realized_mechanics": [
+        "gain_block",
+        "draw_cards"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.BASH": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effects": [
+        "damage",
+        "apply_power"
+      ],
+      "implementation_status": "implemented",
+      "name": "Bash",
+      "realized_mechanics": [
+        "attack_damage",
+        "apply_power:POWER.VULNERABLE_POWER"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.DEFEND_IRONCLAD": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effects": [
+        "block"
+      ],
+      "implementation_status": "implemented",
+      "name": "Defend",
+      "realized_mechanics": [
+        "gain_block"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.DEFEND_SILENT": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effects": [
+        "block"
+      ],
+      "implementation_status": "implemented",
+      "name": "Defend",
+      "realized_mechanics": [
+        "gain_block"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.IRON_WAVE": {
+      "checks": [
+        "test:combat",
+        "test:proof_slice_cards"
+      ],
+      "declared_effects": [
+        "block",
+        "damage"
+      ],
+      "implementation_status": "implemented",
+      "name": "Iron Wave",
+      "realized_mechanics": [
+        "gain_block",
+        "attack_damage"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.NEUTRALIZE": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effects": [
+        "damage",
+        "apply_power"
+      ],
+      "implementation_status": "implemented",
+      "name": "Neutralize",
+      "realized_mechanics": [
+        "attack_damage",
+        "apply_power:POWER.WEAK_POWER"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.POMMEL_STRIKE": {
+      "checks": [
+        "test:combat",
+        "test:proof_slice_cards"
+      ],
+      "declared_effects": [
+        "damage",
+        "draw"
+      ],
+      "implementation_status": "implemented",
+      "name": "Pommel Strike",
+      "realized_mechanics": [
+        "attack_damage",
+        "draw_cards"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.STRIKE_IRONCLAD": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effects": [
+        "damage"
+      ],
+      "implementation_status": "implemented",
+      "name": "Strike",
+      "realized_mechanics": [
+        "attack_damage"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.STRIKE_SILENT": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effects": [
+        "damage"
+      ],
+      "implementation_status": "implemented",
+      "name": "Strike",
+      "realized_mechanics": [
+        "attack_damage"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.SURVIVOR": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effects": [
+        "block",
+        "discard"
+      ],
+      "implementation_status": "implemented",
+      "name": "Survivor",
+      "realized_mechanics": [
+        "gain_block",
+        "branching_exact_one_card_discard"
+      ],
+      "requirements": [
+        "CMB-004"
+      ],
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    }
+  },
+  "kind": "implemented_content",
+  "relics": {
+    "RELIC.BURNING_BLOOD": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effect": "inert",
+      "implementation_status": "recognized_inert",
+      "limitations": [
+        "post_combat_healing is outside the isolated-combat lifecycle"
+      ],
+      "name": "Burning Blood",
+      "realized_mechanics": [],
+      "requirements": [
+        "CMB-004"
+      ]
+    },
+    "RELIC.RING_OF_THE_SNAKE": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effect": "additional_opening_draw",
+      "implementation_status": "implemented",
+      "limitations": [],
+      "name": "Ring of the Snake",
+      "realized_mechanics": [
+        "additional_opening_draw:2"
+      ],
+      "requirements": [
+        "CMB-004"
+      ]
+    },
+    "RELIC.WINGED_BOOTS": {
+      "checks": [
+        "test:combat"
+      ],
+      "declared_effect": "inert",
+      "implementation_status": "recognized_inert",
+      "limitations": [
+        "map movement is outside the isolated-combat lifecycle"
+      ],
+      "name": "Winged Boots",
+      "realized_mechanics": [],
+      "requirements": [
+        "CMB-004"
+      ]
+    }
+  },
+  "schema_version": 1
+}
