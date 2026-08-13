@@ -16,6 +16,7 @@ import CombatReplayView from "./combat-replay";
 
 type CharacterId = string;
 type EnemyId = string;
+type CardScope = "character" | "neutral";
 
 type DeckItem = {
   id: string;
@@ -100,11 +101,13 @@ export default function Home() {
   const [character, setCharacter] = useState<CharacterId>("CHARACTER.SILENT");
   const [enemy, setEnemy] = useState<EnemyId>("MONSTER.NIBBIT");
   const [seed, setSeed] = useState(1);
-  const [customDeck, setCustomDeck] = useState<CombatSetupV2["deck"] | null>(null);
+  const [decksByCharacter, setDecksByCharacter] = useState<Record<CharacterId, CombatSetupV2["deck"]>>({});
   const [customCharacterHp, setCustomCharacterHp] = useState<CombatSetupV2["character"] | null>(null);
   const [customRelics, setCustomRelics] = useState<string[] | null>(null);
   const [customEnemyHp, setCustomEnemyHp] = useState<{ current_hp: number; max_hp: number } | null>(null);
   const [ascension, setAscension] = useState(0);
+  const [quickCardScope, setQuickCardScope] = useState<CardScope>("character");
+  const [quickCardQuery, setQuickCardQuery] = useState("");
   const [stateEditorOpen, setStateEditorOpen] = useState(false);
   const [isSolving, setIsSolving] = useState(false);
   const [runKey, setRunKey] = useState(0);
@@ -153,13 +156,7 @@ export default function Home() {
     return { current_hp: hp, max_hp: hp };
   }, [ascension, selectedEnemy]);
   const activeEnemyHp = customEnemyHp ?? defaultEnemyHp;
-  const supportedCards = useMemo(
-    () => (manifest?.cards ?? []).filter(
-      (card) => card.character === character || card.character === null,
-    ),
-    [character, manifest],
-  );
-  const activeDeckEntries = customDeck ?? selectedCharacter?.starter_deck ?? [];
+  const activeDeckEntries = decksByCharacter[character] ?? selectedCharacter?.starter_deck ?? [];
   const activeDeck = useMemo<DeckItem[]>(() => {
     return activeDeckEntries.map((entry) => {
       const card = cards[entry.id];
@@ -173,12 +170,21 @@ export default function Home() {
       };
     });
   }, [activeDeckEntries, cards]);
-  const availableCards = supportedCards.filter(
-    (card) => !activeDeckEntries.some((entry) => entry.id === card.id),
-  );
+  const availableCards = (manifest?.cards ?? []).filter((card) => {
+    const matchesScope = quickCardScope === "character"
+      ? card.character === character
+      : card.character === null;
+    const query = quickCardQuery.trim().toLowerCase();
+    const matchesQuery = !query
+      || card.name.toLowerCase().includes(query)
+      || card.id.toLowerCase().includes(query);
+    return matchesScope
+      && matchesQuery
+      && !activeDeckEntries.some((entry) => entry.id === card.id);
+  });
   const totalCards = activeDeck.reduce((total, card) => total + card.quantity, 0);
-  const deckIsModified = customDeck !== null
-    && JSON.stringify(customDeck) !== JSON.stringify(selectedCharacter?.starter_deck ?? []);
+  const deckIsModified = decksByCharacter[character] !== undefined
+    && JSON.stringify(activeDeckEntries) !== JSON.stringify(selectedCharacter?.starter_deck ?? []);
   const setup = useMemo(
     () => manifest && selectedCharacter && selectedEnemy
       ? buildSetup(
@@ -262,8 +268,8 @@ export default function Home() {
   }
 
   function changeCardQuantity(cardId: string, upgradeLevel: number, delta: number) {
-    setCustomDeck((current) => {
-      const next = (current ?? selectedCharacter.starter_deck).map((entry) => ({ ...entry }));
+    setDecksByCharacter((current) => {
+      const next = (current[character] ?? selectedCharacter.starter_deck).map((entry) => ({ ...entry }));
       const index = next.findIndex(
         (entry) => entry.id === cardId && entry.upgrade_level === upgradeLevel,
       );
@@ -275,16 +281,27 @@ export default function Home() {
       if (nextQuantity === 0 && index >= 0) next.splice(index, 1);
       else if (index >= 0) next[index].quantity = nextQuantity;
       else if (nextQuantity > 0) next.push({ id: cardId, quantity: nextQuantity, upgrade_level: upgradeLevel });
+      return { ...current, [character]: next };
+    });
+  }
+
+  function resetCurrentDeck() {
+    setDecksByCharacter((current) => {
+      const next = { ...current };
+      delete next[character];
       return next;
     });
   }
 
-  function applyCombatState(next: CombatSetupV2) {
+  function applyCombatState(
+    next: CombatSetupV2,
+    characterDecks: Record<string, CombatSetupV2["deck"]>,
+  ) {
     const nextEnemy = next.encounter.enemies[0];
     if (!characters[next.character.id] || !nextEnemy || !enemies[nextEnemy.id]) return;
     setCharacter(next.character.id);
     setCustomCharacterHp({ ...next.character });
-    setCustomDeck(next.deck.map((entry) => ({ ...entry })));
+    setDecksByCharacter(characterDecks);
     setCustomRelics(next.relics.map((relic) => relic.id));
     setEnemy(nextEnemy.id);
     setCustomEnemyHp({ current_hp: nextEnemy.current_hp, max_hp: nextEnemy.max_hp });
@@ -302,14 +319,17 @@ export default function Home() {
             <div className="panel-heading">
               <div><span className="step-number">1</span><h2>Combat setup</h2></div>
               <div className="panel-actions">
-                <button className="full-editor-button" type="button" onClick={() => setStateEditorOpen(true)}>
-                  Edit full state
-                </button>
                 <button className="copy-button" type="button" onClick={copySetup}>
                   {copied ? "Copied" : "Copy JSON"}
                 </button>
               </div>
             </div>
+
+            <button className="full-editor-button" type="button" onClick={() => setStateEditorOpen(true)}>
+              <span className="full-editor-icon" aria-hidden="true">☷</span>
+              <span><strong>Edit full combat state</strong><small>Cards, upgrades, relics, HP and encounter</small></span>
+              <b aria-hidden="true">→</b>
+            </button>
 
             <fieldset className="control-group">
               <legend>Character</legend>
@@ -325,9 +345,10 @@ export default function Home() {
                       onClick={() => {
                         if (id !== character) {
                           setCharacter(id);
-                          setCustomDeck(null);
                           setCustomCharacterHp(null);
                           setCustomRelics(null);
+                          setQuickCardScope("character");
+                          setQuickCardQuery("");
                         }
                       }}
                     >
@@ -365,7 +386,7 @@ export default function Home() {
               </div>
             </fieldset>
 
-            <div className="parameter-grid">
+            <div className="parameter-grid compact-parameters">
               <div className="field-control">
                 <label htmlFor="seed">Run seed</label>
                 <input
@@ -377,12 +398,6 @@ export default function Home() {
                   onChange={(event) => setSeed(Math.min(4_294_967_295, Math.max(0, Number(event.target.value))))}
                 />
               </div>
-              <div className="field-control">
-                <label htmlFor="ascension">Ascension</label>
-                <select id="ascension" value={ascension} onChange={(event) => setAscension(Number(event.target.value))}>
-                  {Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>A{value}</option>)}
-                </select>
-              </div>
             </div>
 
             <div className="seed-presets" aria-label="Seed presets">
@@ -391,6 +406,21 @@ export default function Home() {
                 <button type="button" key={value} className={seed === value ? "active" : ""} onClick={() => setSeed(value)}>{value}</button>
               ))}
             </div>
+
+            <fieldset className="quick-ascension">
+              <legend>Ascension</legend>
+              <div className="segmented-control ascension-options">
+                {Array.from({ length: 11 }, (_, value) => (
+                  <button
+                    type="button"
+                    key={value}
+                    className={ascension === value ? "active" : ""}
+                    aria-pressed={ascension === value}
+                    onClick={() => setAscension(value)}
+                  >A{value}</button>
+                ))}
+              </div>
+            </fieldset>
 
             <section className="loadout" aria-labelledby="loadout-title">
               <div className="section-heading">
@@ -409,7 +439,7 @@ export default function Home() {
               </div>
               <div className="deck-toolbar">
                 <span>Adjust quantities for this simulation.</span>
-                <button type="button" onClick={() => setCustomDeck(null)} disabled={!deckIsModified}>
+                <button type="button" onClick={resetCurrentDeck} disabled={!deckIsModified}>
                   Reset starter deck
                 </button>
               </div>
@@ -443,12 +473,19 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              {availableCards.length > 0 && (
-                <div className="card-library" aria-label="Cards available to add">
-                  <div className="card-library-heading">
-                    <strong>Add card</strong>
-                    <span>Supported by the current content package</span>
+              <div className="card-library" aria-label="Cards available to add">
+                <div className="card-library-heading">
+                  <strong>Add card</strong>
+                  <span>Class cards shown by default</span>
+                </div>
+                <div className="quick-card-filters">
+                  <div className="segmented-control" aria-label="Card color filter">
+                    <button type="button" className={quickCardScope === "character" ? "active" : ""} aria-pressed={quickCardScope === "character"} onClick={() => setQuickCardScope("character")}>Class</button>
+                    <button type="button" className={quickCardScope === "neutral" ? "active" : ""} aria-pressed={quickCardScope === "neutral"} onClick={() => setQuickCardScope("neutral")}>Neutral</button>
                   </div>
+                  <input type="search" aria-label="Search cards to add" placeholder="Search cards" value={quickCardQuery} onChange={(event) => setQuickCardQuery(event.target.value)} />
+                </div>
+                {availableCards.length > 0 ? (
                   <div className="card-library-list">
                     {availableCards.map((card) => (
                       <button
@@ -463,8 +500,8 @@ export default function Home() {
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : <p className="card-library-empty">No matching cards available to add.</p>}
+              </div>
             </section>
 
             <button className="solve-button" type="button" onClick={solve} disabled={isSolving}>
@@ -484,26 +521,24 @@ export default function Home() {
 
             {winningResult ? (
               <>
-                <section className="result-summary">
-                  <div className="matchup-art" aria-hidden="true">
+                <section className="result-overview">
+                  <div className="compact-matchup" aria-hidden="true">
                     <img className="result-character" src={assetUrl(selectedCharacter.asset)} alt="" />
                     <span>vs</span>
                     <img className="result-enemy" src={assetUrl(selectedEnemy.asset)} alt="" />
                   </div>
                   <div className="result-copy">
                     <span className="success-label">Victory · optimum proven</span>
-                    <h3>{winningResult.hpLoss === 0 ? "No HP lost" : `${winningResult.hpLoss} HP lost`}</h3>
-                    <p>{selectedCharacter.name} finishes with <strong>{winningResult.finalHp} HP</strong>.</p>
+                    <div><h3>{winningResult.hpLoss === 0 ? "No HP lost" : `${winningResult.hpLoss} HP lost`}</h3><p>{selectedCharacter.name} finishes at <strong>{winningResult.finalHp} HP</strong>.</p></div>
+                  </div>
+                  <div className="metric-strip compact-metrics">
+                    <div><span>HP</span><strong>{winningResult.finalHp}</strong></div>
+                    <div><span>Turns</span><strong>{winningResult.turns}</strong></div>
+                    <div><span>Actions</span><strong>{winningResult.actions}</strong></div>
+                    <div><span>States</span><strong>{shortNumber(winningResult.explored)}</strong></div>
+                    <div><span>Time</span><strong>{winningResult.runtime < 0.01 ? `${(winningResult.runtime * 1000).toFixed(1)}ms` : `${winningResult.runtime.toFixed(3)}s`}</strong></div>
                   </div>
                 </section>
-
-                <div className="metric-strip">
-                  <div><span>Final HP</span><strong>{winningResult.finalHp}</strong></div>
-                  <div><span>Enemy turns</span><strong>{winningResult.turns}</strong></div>
-                  <div><span>Actions</span><strong>{winningResult.actions}</strong></div>
-                  <div><span>States</span><strong>{shortNumber(winningResult.explored)}</strong></div>
-                  <div><span>Runtime</span><strong>{winningResult.runtime < 0.01 ? `${(winningResult.runtime * 1000).toFixed(1)}ms` : `${winningResult.runtime.toFixed(3)}s`}</strong></div>
-                </div>
 
                 {activeRun?.replay ? (
                   <CombatReplayView
@@ -565,6 +600,7 @@ export default function Home() {
         <CombatStateEditor
           manifest={manifest}
           setup={setup}
+          characterDecks={decksByCharacter}
           onApply={applyCombatState}
           onClose={() => setStateEditorOpen(false)}
         />

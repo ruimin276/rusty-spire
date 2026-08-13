@@ -26,8 +26,10 @@ test("ships the simulator contract in the browser bundle", async () => {
   assert.match(bundle, /https:\/\/github\.com\/ruimin276\/rusty-spire/);
   assert.match(bundle, /Reset starter deck/);
   assert.match(bundle, /Remove one/);
-  assert.match(bundle, /Edit combat state/);
-  assert.match(bundle, /Search every card/);
+  assert.match(bundle, /Edit full combat state/);
+  assert.match(bundle, /Class cards shown by default/);
+  assert.match(bundle, /Each character keeps its own deck draft/);
+  assert.match(bundle, /All cards/);
   assert.match(bundle, /Potions are not executable yet/);
   assert.doesNotMatch(bundle, /How the solver works|Deterministic combat search/);
   assert.doesNotMatch(bundle, /7a27dc78a49f6523b64dcc140117f8c21690d1fde6240208de488ee0e88e088c/);
