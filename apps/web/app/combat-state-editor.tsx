@@ -14,7 +14,8 @@ type DeckEntry = CombatSetupV2["deck"][number];
 type CombatStateEditorProps = {
   manifest: ContentManifest;
   setup: CombatSetupV2;
-  onApply: (setup: CombatSetupV2) => void;
+  characterDecks: Record<string, CombatSetupV2["deck"]>;
+  onApply: (setup: CombatSetupV2, characterDecks: Record<string, CombatSetupV2["deck"]>) => void;
   onClose: () => void;
 };
 
@@ -45,6 +46,7 @@ function cardQuantity(deck: DeckEntry[], cardId: string, upgradeLevel: number) {
 export default function CombatStateEditor({
   manifest,
   setup,
+  characterDecks,
   onApply,
   onClose,
 }: CombatStateEditorProps) {
@@ -52,6 +54,11 @@ export default function CombatStateEditor({
   const [section, setSection] = useState<EditorSection>("player");
   const [cardQuery, setCardQuery] = useState("");
   const [cardType, setCardType] = useState("all");
+  const [cardScope, setCardScope] = useState<"character" | "neutral" | "all">("character");
+  const [deckCache, setDeckCache] = useState<Record<string, CombatSetupV2["deck"]>>(() => ({
+    ...characterDecks,
+    [setup.character.id]: setup.deck.map((entry) => ({ ...entry })),
+  }));
   const [relicQuery, setRelicQuery] = useState("");
   const [enemyQuery, setEnemyQuery] = useState("");
 
@@ -78,7 +85,12 @@ export default function CombatStateEditor({
       || card.id.toLowerCase().includes(query)
       || (card.character ? characterNames[card.character]?.toLowerCase().includes(query) : "colorless".includes(query));
     const matchesType = cardType === "all" || card.card_type === cardType;
-    return matchesQuery && matchesType;
+    const matchesScope = cardScope === "character"
+      ? card.character === draft.character.id
+      : cardScope === "neutral"
+        ? card.character === null
+        : true;
+    return matchesQuery && matchesType && matchesScope;
   });
   const filteredRelics = manifest.relics.filter((relic) => {
     const query = relicQuery.trim().toLowerCase();
@@ -113,15 +125,21 @@ export default function CombatStateEditor({
   function selectCharacter(characterId: string) {
     const character = characters[characterId];
     if (!character) return;
+    setDeckCache((current) => ({
+      ...current,
+      [draft.character.id]: draft.deck.map((entry) => ({ ...entry })),
+    }));
     updateDraft((next) => {
       next.character = {
         id: character.id,
         current_hp: character.max_hp,
         max_hp: character.max_hp,
       };
-      next.deck = character.starter_deck.map((entry) => ({ ...entry }));
+      next.deck = (deckCache[character.id] ?? character.starter_deck).map((entry) => ({ ...entry }));
       next.relics = character.starter_relics.map((id) => ({ id }));
     });
+    setCardScope("character");
+    setCardQuery("");
   }
 
   function changeCard(card: ContentCard, upgradeLevel: number, delta: number) {
@@ -195,7 +213,7 @@ export default function CombatStateEditor({
               <section className="editor-section" aria-labelledby="editor-player-title">
                 <div className="editor-section-heading">
                   <div><span>Starting state</span><h3 id="editor-player-title">Player & run</h3></div>
-                  <p>Character selection resets the deck and starter relics.</p>
+                  <p>Each character keeps its own deck draft while you switch.</p>
                 </div>
 
                 <div className="editor-character-grid">
@@ -250,17 +268,20 @@ export default function CombatStateEditor({
                       })}
                     />
                   </label>
-                  <label>
+                  <div className="editor-field-group editor-ascension-group">
                     <span>Ascension</span>
-                    <select
-                      value={draft.ascension_level}
-                      onChange={(event) => updateDraft((next) => {
-                        next.ascension_level = Number(event.target.value);
-                      })}
-                    >
-                      {Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>A{value}</option>)}
-                    </select>
-                  </label>
+                    <div className="segmented-control editor-ascension-options">
+                      {Array.from({ length: 11 }, (_, value) => (
+                        <button
+                          type="button"
+                          key={value}
+                          className={draft.ascension_level === value ? "active" : ""}
+                          aria-pressed={draft.ascension_level === value}
+                          onClick={() => updateDraft((next) => { next.ascension_level = value; })}
+                        >A{value}</button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </section>
             )}
@@ -272,22 +293,28 @@ export default function CombatStateEditor({
                   <p>{totalCards} cards · base and upgraded copies are tracked separately.</p>
                 </div>
 
-                <div className="editor-filter-row">
+                <div className="editor-filter-stack">
                   <label className="editor-search">
                     <span aria-hidden="true">⌕</span>
                     <input
                       type="search"
-                      placeholder="Search every card…"
+                      placeholder="Search cards…"
                       value={cardQuery}
                       onChange={(event) => setCardQuery(event.target.value)}
                     />
                   </label>
-                  <select aria-label="Filter cards by type" value={cardType} onChange={(event) => setCardType(event.target.value)}>
-                    <option value="all">All types</option>
-                    <option value="Attack">Attacks</option>
-                    <option value="Skill">Skills</option>
-                    <option value="Power">Powers</option>
-                  </select>
+                  <div className="editor-filter-groups">
+                    <div className="segmented-control" aria-label="Filter cards by color">
+                      {([ ["character", "Class"], ["neutral", "Neutral"], ["all", "All cards"] ] as const).map(([value, label]) => (
+                        <button type="button" key={value} className={cardScope === value ? "active" : ""} aria-pressed={cardScope === value} onClick={() => setCardScope(value)}>{label}</button>
+                      ))}
+                    </div>
+                    <div className="segmented-control" aria-label="Filter cards by type">
+                      {([ ["all", "All types"], ["Attack", "Attacks"], ["Skill", "Skills"], ["Power", "Powers"] ] as const).map(([value, label]) => (
+                        <button type="button" key={value} className={cardType === value ? "active" : ""} aria-pressed={cardType === value} onClick={() => setCardType(value)}>{label}</button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="editor-card-catalog">
@@ -473,7 +500,10 @@ export default function CombatStateEditor({
           </div>
           <div>
             <button type="button" className="editor-cancel" onClick={onClose}>Cancel</button>
-            <button type="button" className="editor-apply" onClick={() => onApply(draft)}>Apply combat state</button>
+            <button type="button" className="editor-apply" onClick={() => onApply(draft, {
+              ...deckCache,
+              [draft.character.id]: draft.deck.map((entry) => ({ ...entry })),
+            })}>Apply combat state</button>
           </div>
         </footer>
       </section>
