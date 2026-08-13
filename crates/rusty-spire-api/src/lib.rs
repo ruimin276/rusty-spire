@@ -10,8 +10,8 @@ pub use rusty_spire_combat::{
 pub use rusty_spire_data::{CombatCatalog, DataPackage};
 pub use rusty_spire_simulator::{CompareResult, SolveLimits, SolveResult, TraceStep};
 
-use rusty_spire_combat::{CombatError, InitializedCombat, initialize};
-use rusty_spire_core::{Action, CombatState};
+use rusty_spire_combat::{CombatError, EnemyIntent, InitializedCombat, Simulator, initialize};
+use rusty_spire_core::{Action, CardInstance, CombatState, Decision, PowerState};
 use rusty_spire_data::{CardDefinition, DataError, MonsterDefinition};
 use rusty_spire_heuristics::RemainingEnemyHp;
 use rusty_spire_simulator::{
@@ -115,6 +115,8 @@ pub struct SolveRequestV1 {
     pub heuristic: HeuristicKindV1,
     #[serde(default)]
     pub limits: SolveLimits,
+    #[serde(default)]
+    pub include_replay: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -209,6 +211,109 @@ pub struct SolveResponseV1 {
     pub result: SolveResult,
     pub opening_hand: Vec<String>,
     pub actions: Vec<CombatActionV1>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub replay: Option<CombatReplayV1>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct CombatReplayV1 {
+    pub frames: Vec<ReplayFrameV1>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ReplayFrameV1 {
+    pub index: usize,
+    pub turn: u32,
+    pub action: Option<CombatActionV1>,
+    pub state: ReplayStateV1,
+    pub resolved_enemy_intents: Vec<EnemyIntentV1>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ReplayStateV1 {
+    pub state_id: String,
+    pub turn: u32,
+    pub status: ReplayCombatStatusV1,
+    pub decision: ReplayDecisionV1,
+    pub player: ReplayPlayerV1,
+    pub enemies: Vec<ReplayEnemyV1>,
+    pub hand: Vec<ReplayCardV1>,
+    pub draw_pile: Vec<ReplayCardV1>,
+    pub discard_pile: Vec<ReplayCardV1>,
+    pub exhaust_pile: Vec<ReplayCardV1>,
+    pub play_pile: Vec<ReplayCardV1>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReplayCombatStatusV1 {
+    Active,
+    Won,
+    Lost,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReplayDecisionV1 {
+    PlayerAction,
+    CardSelection,
+    Terminal,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ReplayPlayerV1 {
+    pub id: String,
+    pub model_id: String,
+    pub hp: i32,
+    pub max_hp: i32,
+    pub block: i32,
+    pub energy: i32,
+    pub max_energy: i32,
+    pub powers: Vec<ReplayPowerV1>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ReplayEnemyV1 {
+    pub id: String,
+    pub model_id: String,
+    pub hp: i32,
+    pub max_hp: i32,
+    pub block: i32,
+    pub powers: Vec<ReplayPowerV1>,
+    pub current_intent: Option<EnemyIntentV1>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ReplayPowerV1 {
+    pub id: String,
+    pub name: String,
+    pub amount: i32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ReplayCardV1 {
+    pub instance_id: String,
+    pub card_id: String,
+    pub upgrade_level: u8,
+    pub effective_cost: i32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct EnemyIntentV1 {
+    pub enemy_id: String,
+    pub move_id: String,
+    pub name: String,
+    pub damage: Option<i32>,
+    pub block: Option<i32>,
+    pub power: Option<EnemyPowerIntentV1>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct EnemyPowerIntentV1 {
+    pub id: String,
+    pub name: String,
+    pub amount: i32,
+    pub target: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -446,11 +551,17 @@ impl AppService {
             .iter()
             .map(|step| CombatActionV1::try_from(&step.action))
             .collect::<Result<Vec<_>, _>>()?;
+        let replay = if request.include_replay && result.won {
+            Some(build_replay(&self.package, &initialized, &result)?)
+        } else {
+            None
+        };
         Ok(SolveResponseV1 {
             schema_version: API_SCHEMA_VERSION,
             result,
             opening_hand,
             actions,
+            replay,
         })
     }
 
@@ -539,6 +650,197 @@ impl AppService {
             }
         }
     }
+}
+
+fn build_replay(
+    package: &DataPackage,
+    initialized: &InitializedCombat,
+    result: &SolveResult,
+) -> Result<CombatReplayV1, ApiErrorV1> {
+    let simulator = Simulator::new(package);
+    let mut state = initialized.state.clone();
+    let mut frames = vec![replay_frame(
+        package,
+        &simulator,
+        0,
+        None,
+        &state,
+        Vec::new(),
+    )?];
+
+    for (index, step) in result.actions.iter().enumerate() {
+        let originating_turn = state.combat.turn;
+        let resolved_enemy_intents = if step.action.action_type == "end_turn" {
+            state
+                .enemies
+                .iter()
+                .filter(|enemy| enemy.hp > 0)
+                .map(|enemy| simulator.enemy_intent(&state, &enemy.combat_id))
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .map(|intent| replay_intent(package, intent))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        state = simulator.step(&state, &step.action)?;
+        let state_id = simulator.state_id(&state)?;
+        if state_id != step.state_hash {
+            return Err(ApiErrorV1::new(
+                ApiErrorCode::Internal,
+                format!(
+                    "replay state hash mismatch at action {}: expected {}, got {}",
+                    index + 1,
+                    step.state_hash,
+                    state_id
+                ),
+            ));
+        }
+        frames.push(replay_frame(
+            package,
+            &simulator,
+            index + 1,
+            Some((originating_turn, CombatActionV1::try_from(&step.action)?)),
+            &state,
+            resolved_enemy_intents,
+        )?);
+    }
+
+    Ok(CombatReplayV1 { frames })
+}
+
+fn replay_frame(
+    package: &DataPackage,
+    simulator: &Simulator<'_>,
+    index: usize,
+    action: Option<(u32, CombatActionV1)>,
+    state: &CombatState,
+    resolved_enemy_intents: Vec<EnemyIntentV1>,
+) -> Result<ReplayFrameV1, ApiErrorV1> {
+    let turn = action.as_ref().map_or(state.combat.turn, |value| value.0);
+    Ok(ReplayFrameV1 {
+        index,
+        turn,
+        action: action.map(|value| value.1),
+        state: replay_state(package, simulator, state)?,
+        resolved_enemy_intents,
+    })
+}
+
+fn replay_state(
+    package: &DataPackage,
+    simulator: &Simulator<'_>,
+    state: &CombatState,
+) -> Result<ReplayStateV1, ApiErrorV1> {
+    Ok(ReplayStateV1 {
+        state_id: simulator.state_id(state)?,
+        turn: state.combat.turn,
+        status: if state.combat.won {
+            ReplayCombatStatusV1::Won
+        } else if state.combat.lost {
+            ReplayCombatStatusV1::Lost
+        } else {
+            ReplayCombatStatusV1::Active
+        },
+        decision: match state.decision {
+            Decision::PlayerAction => ReplayDecisionV1::PlayerAction,
+            Decision::CardSelection { .. } => ReplayDecisionV1::CardSelection,
+            Decision::Terminal => ReplayDecisionV1::Terminal,
+        },
+        player: ReplayPlayerV1 {
+            id: state.player.combat_id.clone(),
+            model_id: state.player.model_id.clone(),
+            hp: state.player.hp,
+            max_hp: state.player.max_hp,
+            block: state.player.block,
+            energy: state.player.energy,
+            max_energy: state.player.max_energy,
+            powers: replay_powers(&state.player.powers),
+        },
+        enemies: state
+            .enemies
+            .iter()
+            .map(|enemy| {
+                let current_intent = if enemy.hp > 0 && !state.combat.won && !state.combat.lost {
+                    Some(replay_intent(
+                        package,
+                        simulator.enemy_intent(state, &enemy.combat_id)?,
+                    ))
+                } else {
+                    None
+                };
+                Ok(ReplayEnemyV1 {
+                    id: enemy.combat_id.clone(),
+                    model_id: enemy.model_id.clone(),
+                    hp: enemy.hp,
+                    max_hp: enemy.max_hp,
+                    block: enemy.block,
+                    powers: replay_powers(&enemy.powers),
+                    current_intent,
+                })
+            })
+            .collect::<Result<Vec<_>, ApiErrorV1>>()?,
+        hand: replay_cards(&state.hand),
+        draw_pile: replay_cards(&state.draw_pile),
+        discard_pile: replay_cards(&state.discard_pile),
+        exhaust_pile: replay_cards(&state.exhaust_pile),
+        play_pile: replay_cards(&state.play_pile),
+    })
+}
+
+fn replay_cards(cards: &[CardInstance]) -> Vec<ReplayCardV1> {
+    cards
+        .iter()
+        .map(|card| ReplayCardV1 {
+            instance_id: card.instance_id.clone(),
+            card_id: card.model_id.clone(),
+            upgrade_level: card.upgrade_level,
+            effective_cost: card.effective_cost(),
+        })
+        .collect()
+}
+
+fn replay_powers(powers: &[PowerState]) -> Vec<ReplayPowerV1> {
+    powers
+        .iter()
+        .map(|power| ReplayPowerV1 {
+            id: power.model_id.clone(),
+            name: replay_power_name(&power.model_id),
+            amount: power.amount,
+        })
+        .collect()
+}
+
+fn replay_intent(package: &DataPackage, intent: EnemyIntent) -> EnemyIntentV1 {
+    let power = intent.power.map(|power| EnemyPowerIntentV1 {
+        name: replay_power_name(&power.model_id),
+        id: power.model_id,
+        amount: power.amount,
+        target: power.target,
+    });
+    let move_name = package
+        .data
+        .monsters
+        .values()
+        .flat_map(|monster| monster.moves.keys())
+        .find(|move_id| *move_id == &intent.move_id)
+        .map_or_else(
+            || display_name("", &intent.move_id),
+            |move_id| display_name("", move_id),
+        );
+    EnemyIntentV1 {
+        enemy_id: intent.enemy_id,
+        move_id: intent.move_id,
+        name: move_name,
+        damage: intent.damage,
+        block: intent.block,
+        power,
+    }
+}
+
+fn replay_power_name(id: &str) -> String {
+    let name = display_name("", id);
+    name.strip_suffix(" Power").unwrap_or(&name).to_owned()
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -653,10 +955,14 @@ mod tests {
     #[test]
     fn v2_proof_slice_request_solves_exactly() {
         let service = AppService::embedded().unwrap();
-        let setup: CombatSetupV2 = serde_json::from_str(include_str!(
+        let mut setup: CombatSetupV2 = serde_json::from_str(include_str!(
             "../../../fixtures/combat_setup_v2/ironclad_proof_slice_seed_1.json"
         ))
         .unwrap();
+        setup.package = PackageIdentityV1 {
+            package_id: service.package().package_id.clone(),
+            sha256: service.package().sha256.clone(),
+        };
         let response = service
             .solve_v1(&SolveRequestV1 {
                 schema_version: 1,
@@ -665,19 +971,111 @@ mod tests {
                 mode: SearchMode::Exact,
                 heuristic: HeuristicKindV1::RemainingEnemyHp,
                 limits: SolveLimits::default(),
+                include_replay: false,
             })
             .unwrap();
         assert!(response.result.won);
         assert!(response.result.optimality_proven);
+        assert!(response.replay.is_none());
+    }
+
+    #[test]
+    fn winning_replay_matches_the_search_trace() {
+        let service = AppService::embedded().unwrap();
+        let mut setup: CombatSetupV2 = serde_json::from_str(include_str!(
+            "../../../fixtures/combat_setup_v2/silent_proof_slice_seed_1.json"
+        ))
+        .unwrap();
+        setup.package = PackageIdentityV1 {
+            package_id: service.package().package_id.clone(),
+            sha256: service.package().sha256.clone(),
+        };
+        let response = service
+            .solve_v1(&SolveRequestV1 {
+                schema_version: 1,
+                setup,
+                policy: PolicyKind::MinimizeHpLoss,
+                mode: SearchMode::Exact,
+                heuristic: HeuristicKindV1::RemainingEnemyHp,
+                limits: SolveLimits::default(),
+                include_replay: true,
+            })
+            .unwrap();
+        let replay = response.replay.as_ref().unwrap();
+        assert_eq!(replay.frames.len(), response.result.actions.len() + 1);
+        assert!(replay.frames[0].action.is_none());
+        assert!(replay.frames[0].state.enemies[0].current_intent.is_some());
+        assert!(
+            replay
+                .frames
+                .iter()
+                .any(|frame| !frame.resolved_enemy_intents.is_empty())
+        );
+        for (frame, step) in replay.frames.iter().skip(1).zip(&response.result.actions) {
+            assert_eq!(frame.state.state_id, step.state_hash);
+        }
+        assert!(matches!(
+            replay.frames.last().unwrap().state.status,
+            ReplayCombatStatusV1::Won
+        ));
+        assert_eq!(
+            replay.frames.last().unwrap().state.player.hp,
+            response.result.final_hp.unwrap()
+        );
+    }
+
+    #[test]
+    fn replay_is_opt_in_on_the_versioned_request() {
+        let request: SolveRequestV1 = serde_json::from_value(json!({
+            "schema_version": 1,
+            "setup": serde_json::from_str::<Value>(include_str!(
+                "../../../fixtures/combat_setup_v2/silent_proof_slice_seed_1.json"
+            )).unwrap()
+        }))
+        .unwrap();
+        assert!(!request.include_replay);
+        let response = SolveResponseV1 {
+            schema_version: 1,
+            result: SolveResult {
+                catalog_sha256: String::new(),
+                catalog_game_version: String::new(),
+                setup_hash: String::new(),
+                policy: PolicyKind::MinimizeHpLoss,
+                won: false,
+                complete: true,
+                optimality_proven: true,
+                hp_loss: None,
+                final_hp: None,
+                actions: Vec::new(),
+                action_ids: Vec::new(),
+                explored_states: 0,
+                cache_hits: 0,
+                runtime_seconds: 0.0,
+                termination_reason: "exhausted".into(),
+            },
+            opening_hand: Vec::new(),
+            actions: Vec::new(),
+            replay: None,
+        };
+        assert!(
+            serde_json::to_value(response)
+                .unwrap()
+                .get("replay")
+                .is_none()
+        );
     }
 
     #[test]
     fn snapshot_v3_state_id_is_canonical_and_schema_guarded() {
         let service = AppService::embedded().unwrap();
-        let setup: CombatSetupV2 = serde_json::from_str(include_str!(
+        let mut setup: CombatSetupV2 = serde_json::from_str(include_str!(
             "../../../fixtures/combat_setup_v2/silent_proof_slice_seed_1.json"
         ))
         .unwrap();
+        setup.package = PackageIdentityV1 {
+            package_id: service.package().package_id.clone(),
+            sha256: service.package().sha256.clone(),
+        };
         let initialized = service.validate_v2(&setup).unwrap();
         let snapshot = CombatSnapshotV3 {
             schema_version: 3,

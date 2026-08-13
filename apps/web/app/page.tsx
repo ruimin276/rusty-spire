@@ -10,8 +10,9 @@ import {
   type ContentCharacter,
   type ContentEnemy,
   type ContentManifest,
-  type TraceStep,
 } from "../src/simulator";
+import CombatStateEditor from "./combat-state-editor";
+import CombatReplayView from "./combat-replay";
 
 type CharacterId = string;
 type EnemyId = string;
@@ -19,8 +20,9 @@ type EnemyId = string;
 type DeckItem = {
   id: string;
   name: string;
-  type: "Attack" | "Skill";
+  type: string;
   quantity: number;
+  upgradeLevel: number;
   asset: string;
 };
 
@@ -34,38 +36,17 @@ function assetUrl(asset: string | null) {
   return asset ? `./${asset}` : "./favicon.svg";
 }
 
-function traceRows(steps: TraceStep[], cards: Record<string, ContentCard>) {
-  let turn = 1;
-  return steps.map((step) => {
-    const action = step.action;
-    const card = action.card_id ? cards[action.card_id]?.name ?? action.card_id : null;
-    const row = {
-      turn: String(turn).padStart(2, "0"),
-      action: card ?? (action.type === "end_turn" ? "End turn" : "Choose card"),
-      detail: card
-        ? `${action.cost ?? 0} energy${action.target_combat_id ? " · target enemy" : ""}`
-        : action.type === "end_turn"
-          ? "Enemy resolves · next draw"
-          : `Select ${action.selection.join(", ")}`,
-      hash: step.state_hash.slice(0, 8),
-    };
-    if (action.type === "end_turn") turn += 1;
-    return row;
-  });
-}
-
 function buildSetup(
   manifest: ContentManifest,
   character: ContentCharacter,
   enemy: ContentEnemy,
-  extraCards: string[],
+  deck: CombatSetupV2["deck"],
+  characterHp: { current_hp: number; max_hp: number },
+  relicIds: string[],
+  enemyHp: { current_hp: number; max_hp: number },
   seed: number,
   ascension: number,
 ): CombatSetupV2 {
-  const hp = character.max_hp;
-  const range = ascension >= 8 ? enemy.ascension_hp : enemy.hp;
-  const enemyHp = Math.floor((range[0] + range[1]) / 2);
-
   return {
     schema_version: 2,
     package: manifest.package,
@@ -73,20 +54,44 @@ function buildSetup(
     rng: { run_seed: String(seed), profile: "isolated_combat_xoshiro_v1" },
     character: {
       id: character.id,
-      current_hp: hp,
-      max_hp: hp,
+      current_hp: characterHp.current_hp,
+      max_hp: characterHp.max_hp,
     },
-    deck: [
-      ...character.starter_deck,
-      ...extraCards.map((id) => ({ id, quantity: 1, upgrade_level: 0 })),
-    ],
-    relics: character.starter_relics.map((id) => ({ id })),
+    deck,
+    relics: relicIds.map((id) => ({ id })),
     potions: [],
     encounter: {
       type: "custom",
-      enemies: [{ id: enemy.id, current_hp: enemyHp, max_hp: enemyHp }],
+      enemies: [{ id: enemy.id, current_hp: enemyHp.current_hp, max_hp: enemyHp.max_hp }],
     },
   };
+}
+
+function AppHeader({ manifest }: { manifest?: ContentManifest }) {
+  return (
+    <header className="app-header">
+      <a className="brand" href="#top" aria-label="SLS2 Combat Lab home">
+        <span className="brand-mark">S2</span>
+        <span><strong>Combat Lab</strong><small>Slay the Spire 2</small></span>
+      </a>
+      <div className="header-actions">
+        <div
+          className="runtime-status"
+          title={manifest ? `${manifest.package.package_id} ${manifest.package.sha256}` : "Loading combat package"}
+        >
+          <span className="status-dot" /> {manifest ? "Local Rust/WASM" : "Loading engine"}
+        </div>
+        <a
+          className="github-link"
+          href="https://github.com/ruimin276/rusty-spire"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </header>
+  );
 }
 
 export default function Home() {
@@ -95,8 +100,12 @@ export default function Home() {
   const [character, setCharacter] = useState<CharacterId>("CHARACTER.SILENT");
   const [enemy, setEnemy] = useState<EnemyId>("MONSTER.NIBBIT");
   const [seed, setSeed] = useState(1);
-  const [extraCards, setExtraCards] = useState<string[]>([]);
+  const [customDeck, setCustomDeck] = useState<CombatSetupV2["deck"] | null>(null);
+  const [customCharacterHp, setCustomCharacterHp] = useState<CombatSetupV2["character"] | null>(null);
+  const [customRelics, setCustomRelics] = useState<string[] | null>(null);
+  const [customEnemyHp, setCustomEnemyHp] = useState<{ current_hp: number; max_hp: number } | null>(null);
   const [ascension, setAscension] = useState(0);
+  const [stateEditorOpen, setStateEditorOpen] = useState(false);
   const [isSolving, setIsSolving] = useState(false);
   const [runKey, setRunKey] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -128,49 +137,73 @@ export default function Home() {
     () => Object.fromEntries((manifest?.relics ?? []).map((item) => [item.id, item])),
     [manifest],
   );
-  const decks = useMemo<Record<CharacterId, DeckItem[]>>(
-    () => Object.fromEntries((manifest?.characters ?? []).map((item) => [
-      item.id,
-      item.starter_deck.map((entry) => {
-        const card = cards[entry.id];
-        return {
-          id: entry.id,
-          name: card?.name ?? entry.id,
-          type: card?.card_type === "Attack" ? "Attack" : "Skill",
-          quantity: entry.quantity,
-          asset: assetUrl(card?.asset ?? null),
-        };
-      }),
-    ])),
-    [cards, manifest],
-  );
   const selectedCharacter = characters[character];
   const selectedEnemy = enemies[enemy];
-  const selectedRelic = selectedCharacter
-    ? relics[selectedCharacter.starter_relics[0]]
-    : undefined;
-  const availableProofCards = (manifest?.cards ?? []).filter(
-    (card) => card.character === character
-      && !selectedCharacter?.starter_deck.some((entry) => entry.id === card.id),
+  const activeCharacterHp = customCharacterHp ?? {
+    id: character,
+    current_hp: selectedCharacter?.max_hp ?? 1,
+    max_hp: selectedCharacter?.max_hp ?? 1,
+  };
+  const activeRelicIds = customRelics ?? selectedCharacter?.starter_relics ?? [];
+  const selectedRelics = activeRelicIds.map((id) => relics[id]).filter(Boolean);
+  const defaultEnemyHp = useMemo(() => {
+    if (!selectedEnemy) return { current_hp: 1, max_hp: 1 };
+    const range = ascension >= 8 ? selectedEnemy.ascension_hp : selectedEnemy.hp;
+    const hp = Math.floor((range[0] + range[1]) / 2);
+    return { current_hp: hp, max_hp: hp };
+  }, [ascension, selectedEnemy]);
+  const activeEnemyHp = customEnemyHp ?? defaultEnemyHp;
+  const supportedCards = useMemo(
+    () => (manifest?.cards ?? []).filter(
+      (card) => card.character === character || card.character === null,
+    ),
+    [character, manifest],
   );
-  const activeDeck = [
-    ...(decks[character] ?? []),
-    ...extraCards.map((id) => {
-      const card = cards[id];
+  const activeDeckEntries = customDeck ?? selectedCharacter?.starter_deck ?? [];
+  const activeDeck = useMemo<DeckItem[]>(() => {
+    return activeDeckEntries.map((entry) => {
+      const card = cards[entry.id];
       return {
-        id,
-        name: card?.name ?? id,
-        type: card?.card_type === "Attack" ? "Attack" as const : "Skill" as const,
-        quantity: 1,
+        id: entry.id,
+        name: card?.name ?? entry.id,
+        type: card?.card_type ?? "Card",
+        quantity: entry.quantity,
+        upgradeLevel: entry.upgrade_level,
         asset: assetUrl(card?.asset ?? null),
       };
-    }),
-  ];
+    });
+  }, [activeDeckEntries, cards]);
+  const availableCards = supportedCards.filter(
+    (card) => !activeDeckEntries.some((entry) => entry.id === card.id),
+  );
+  const totalCards = activeDeck.reduce((total, card) => total + card.quantity, 0);
+  const deckIsModified = customDeck !== null
+    && JSON.stringify(customDeck) !== JSON.stringify(selectedCharacter?.starter_deck ?? []);
   const setup = useMemo(
     () => manifest && selectedCharacter && selectedEnemy
-      ? buildSetup(manifest, selectedCharacter, selectedEnemy, extraCards, seed, ascension)
+      ? buildSetup(
+          manifest,
+          selectedCharacter,
+          selectedEnemy,
+          activeDeckEntries,
+          activeCharacterHp,
+          activeRelicIds,
+          activeEnemyHp,
+          seed,
+          ascension,
+        )
       : null,
-    [ascension, extraCards, manifest, seed, selectedCharacter, selectedEnemy],
+    [
+      activeCharacterHp,
+      activeDeckEntries,
+      activeEnemyHp,
+      activeRelicIds,
+      ascension,
+      manifest,
+      seed,
+      selectedCharacter,
+      selectedEnemy,
+    ],
   );
   const setupSignature = JSON.stringify(setup);
   const activeRun = wasmRun?.setupSignature === setupSignature ? wasmRun.value : null;
@@ -186,7 +219,6 @@ export default function Home() {
         opening: activeRun?.opening_hand ?? [],
       }
     : null;
-  const trace = result ? traceRows(result.actions, cards) : [];
   const proofLabel = isSolving
     ? "Search running"
     : result?.optimality_proven
@@ -195,12 +227,15 @@ export default function Home() {
 
   if (!manifest || !selectedCharacter || !selectedEnemy || !setup) {
     return (
-      <main className="app-shell">
-        <section className="empty-state">
-          <h1>Loading combat package…</h1>
-          {manifestError ? <p>{manifestError}</p> : <p>Initializing the local Rust/WASM engine.</p>}
-        </section>
-      </main>
+      <div className="app-shell" id="top">
+        <AppHeader />
+        <main className="app-main">
+          <section className="loading-state">
+            <h1>Loading combat package…</h1>
+            {manifestError ? <p>{manifestError}</p> : <p>Initializing the local Rust/WASM engine.</p>}
+          </section>
+        </main>
+      </div>
     );
   }
 
@@ -226,44 +261,54 @@ export default function Home() {
     window.setTimeout(() => setCopied(false), 1400);
   }
 
+  function changeCardQuantity(cardId: string, upgradeLevel: number, delta: number) {
+    setCustomDeck((current) => {
+      const next = (current ?? selectedCharacter.starter_deck).map((entry) => ({ ...entry }));
+      const index = next.findIndex(
+        (entry) => entry.id === cardId && entry.upgrade_level === upgradeLevel,
+      );
+      const currentQuantity = index >= 0 ? next[index].quantity : 0;
+      const currentTotal = next.reduce((total, entry) => total + entry.quantity, 0);
+      if (delta < 0 && currentQuantity === 1 && currentTotal === 1) return current;
+
+      const nextQuantity = Math.min(99, Math.max(0, currentQuantity + delta));
+      if (nextQuantity === 0 && index >= 0) next.splice(index, 1);
+      else if (index >= 0) next[index].quantity = nextQuantity;
+      else if (nextQuantity > 0) next.push({ id: cardId, quantity: nextQuantity, upgrade_level: upgradeLevel });
+      return next;
+    });
+  }
+
+  function applyCombatState(next: CombatSetupV2) {
+    const nextEnemy = next.encounter.enemies[0];
+    if (!characters[next.character.id] || !nextEnemy || !enemies[nextEnemy.id]) return;
+    setCharacter(next.character.id);
+    setCustomCharacterHp({ ...next.character });
+    setCustomDeck(next.deck.map((entry) => ({ ...entry })));
+    setCustomRelics(next.relics.map((relic) => relic.id));
+    setEnemy(nextEnemy.id);
+    setCustomEnemyHp({ current_hp: nextEnemy.current_hp, max_hp: nextEnemy.max_hp });
+    setSeed(Number(next.rng.run_seed));
+    setAscension(next.ascension_level);
+    setStateEditorOpen(false);
+  }
+
   return (
     <div className="app-shell" id="top">
-      <header className="app-header">
-        <a className="brand" href="#top" aria-label="SLS2 Combat Lab home">
-          <span className="brand-mark">S2</span>
-          <span><strong>Combat Lab</strong><small>Slay the Spire 2</small></span>
-        </a>
-        <nav aria-label="Primary navigation">
-          <a href="#workspace">Solver</a>
-          <a href="#method">Method</a>
-          <a href="https://github.com/ruimin276/rusty-spire" target="_blank" rel="noreferrer">Source ↗</a>
-        </nav>
-        <div className="runtime-status" title={`${manifest.package.package_id} ${manifest.package.sha256}`}>
-          <span className="status-dot" /> Local Rust/WASM
-        </div>
-      </header>
-
-      <main>
-        <section className="page-intro">
-          <div>
-            <p className="eyebrow">Deterministic combat search</p>
-            <h1>Combat solver</h1>
-            <p>Configure one isolated encounter and find the winning line with the least HP loss.</p>
-          </div>
-          <dl className="catalog-summary">
-            <div><dt>Package</dt><dd>{manifest.game_version}</dd></div>
-            <div><dt>Policy</dt><dd>Minimize HP loss</dd></div>
-            <div><dt>Runtime</dt><dd>Local browser</dd></div>
-          </dl>
-        </section>
-
+      <AppHeader manifest={manifest} />
+      <main className="app-main">
         <section className="workspace" id="workspace" aria-label="Combat solver workspace">
           <aside className="setup-panel">
             <div className="panel-heading">
               <div><span className="step-number">1</span><h2>Combat setup</h2></div>
-              <button className="copy-button" type="button" onClick={copySetup}>
-                {copied ? "Copied" : "Copy JSON"}
-              </button>
+              <div className="panel-actions">
+                <button className="full-editor-button" type="button" onClick={() => setStateEditorOpen(true)}>
+                  Edit full state
+                </button>
+                <button className="copy-button" type="button" onClick={copySetup}>
+                  {copied ? "Copied" : "Copy JSON"}
+                </button>
+              </div>
             </div>
 
             <fieldset className="control-group">
@@ -277,7 +322,14 @@ export default function Home() {
                       key={id}
                       className={character === id ? "active" : ""}
                       aria-pressed={character === id}
-                      onClick={() => { setCharacter(id); setExtraCards([]); }}
+                      onClick={() => {
+                        if (id !== character) {
+                          setCharacter(id);
+                          setCustomDeck(null);
+                          setCustomCharacterHp(null);
+                          setCustomRelics(null);
+                        }
+                      }}
                     >
                       <span className="character-art"><img src={assetUrl(item.asset)} alt="" /></span>
                       <span><strong>{item.name}</strong><small>{item.max_hp} HP · Starter deck · {item.starter_deck.reduce((total, entry) => total + entry.quantity, 0)} cards</small></span>
@@ -299,7 +351,10 @@ export default function Home() {
                       key={id}
                       className={enemy === id ? "active" : ""}
                       aria-pressed={enemy === id}
-                      onClick={() => setEnemy(id)}
+                      onClick={() => {
+                        setEnemy(id);
+                        setCustomEnemyHp(null);
+                      }}
                     >
                       <span className="enemy-art"><img src={assetUrl(item.asset)} alt="" /></span>
                       <span className="enemy-name"><strong>{item.name}</strong><small>{item.hp[0]}–{item.hp[1]} HP</small></span>
@@ -339,42 +394,77 @@ export default function Home() {
 
             <section className="loadout" aria-labelledby="loadout-title">
               <div className="section-heading">
-                <div><h3 id="loadout-title">Combat loadout</h3><span>{activeDeck.reduce((total, card) => total + card.quantity, 0)} cards</span></div>
+                <div><h3 id="loadout-title">Combat deck</h3><span>{totalCards} cards</span></div>
                 <div className="relic-summary">
                   <img
-                    src={assetUrl(selectedRelic?.asset ?? null)}
+                    src={assetUrl(selectedRelics[0]?.asset ?? null)}
                     alt=""
                   />
-                  <span>{selectedRelic?.name ?? "No starter relic"}</span>
+                  <span>
+                    {selectedRelics.length === 0
+                      ? "No relics"
+                      : `${selectedRelics[0].name}${selectedRelics.length > 1 ? ` +${selectedRelics.length - 1}` : ""}`}
+                  </span>
                 </div>
+              </div>
+              <div className="deck-toolbar">
+                <span>Adjust quantities for this simulation.</span>
+                <button type="button" onClick={() => setCustomDeck(null)} disabled={!deckIsModified}>
+                  Reset starter deck
+                </button>
               </div>
               <div className="deck-list">
                 {activeDeck.map((card) => (
-                  <div className="deck-row" key={card.name}>
+                  <div className="deck-row" key={`${card.id}-${card.upgradeLevel}`}>
                     <img src={card.asset} alt="" />
-                    <span><strong>{card.name}</strong><small>{card.type}</small></span>
-                    <b>×{card.quantity}</b>
+                    <span>
+                      <strong>{card.name}{card.upgradeLevel === 1 ? "+" : ""}</strong>
+                      <small>{card.type}{card.upgradeLevel === 1 ? " · Upgraded" : ""}</small>
+                    </span>
+                    <div className="deck-quantity" aria-label={`${card.name}${card.upgradeLevel === 1 ? " upgraded" : ""} quantity`}>
+                      <button
+                        type="button"
+                        aria-label={`Remove one ${card.upgradeLevel === 1 ? "upgraded " : ""}${card.name}`}
+                        onClick={() => changeCardQuantity(card.id, card.upgradeLevel, -1)}
+                        disabled={totalCards === 1 && card.quantity === 1}
+                      >
+                        −
+                      </button>
+                      <output aria-label={`${card.name} count`}>{card.quantity}</output>
+                      <button
+                        type="button"
+                        aria-label={`Add one ${card.upgradeLevel === 1 ? "upgraded " : ""}${card.name}`}
+                        onClick={() => changeCardQuantity(card.id, card.upgradeLevel, 1)}
+                        disabled={card.quantity >= 99}
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
-              <div className="seed-presets" aria-label="Add reviewed proof-slice cards">
-                <span>Add card</span>
-                {availableProofCards.map((card) => {
-                  const active = extraCards.includes(card.id);
-                  return (
-                    <button
-                      type="button"
-                      key={card.id}
-                      className={active ? "active" : ""}
-                      onClick={() => setExtraCards((values) => active
-                        ? values.filter((id) => id !== card.id)
-                        : [...values, card.id])}
-                    >
-                      {card.name}
-                    </button>
-                  );
-                })}
-              </div>
+              {availableCards.length > 0 && (
+                <div className="card-library" aria-label="Cards available to add">
+                  <div className="card-library-heading">
+                    <strong>Add card</strong>
+                    <span>Supported by the current content package</span>
+                  </div>
+                  <div className="card-library-list">
+                    {availableCards.map((card) => (
+                      <button
+                        type="button"
+                        key={card.id}
+                        aria-label={`Add ${card.name} to deck`}
+                        onClick={() => changeCardQuantity(card.id, 0, 1)}
+                      >
+                        <img src={assetUrl(card.asset)} alt="" />
+                        <span><strong>{card.name}</strong><small>{card.card_type ?? "Card"}</small></span>
+                        <b aria-hidden="true">+</b>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
 
             <button className="solve-button" type="button" onClick={solve} disabled={isSolving}>
@@ -415,31 +505,27 @@ export default function Home() {
                   <div><span>Runtime</span><strong>{winningResult.runtime < 0.01 ? `${(winningResult.runtime * 1000).toFixed(1)}ms` : `${winningResult.runtime.toFixed(3)}s`}</strong></div>
                 </div>
 
-                <section className="draw-section">
-                  <div className="section-title"><h3>Opening hand</h3><span>Seed {seed} · shuffle stream</span></div>
-                  <div className="card-hand">
-                    {winningResult.opening.map((card, index) => (
-                      <div className="mini-card" key={`${card}-${index}`}>
-                        <img src={assetUrl(cards[card]?.asset ?? null)} alt={`${cards[card]?.name ?? card} card`} />
-                        <span>{cards[card]?.name ?? card}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="trace-section">
-                  <div className="section-title"><h3>Optimal action sequence</h3><span>{trace.length} actions · hashes shortened</span></div>
-                  <div className="trace-list">
-                    {trace.map((item, index) => (
-                      <div className="trace-row" key={`${item.turn}-${index}`}>
-                        <span className="turn-label">T{item.turn}</span>
-                        <strong>{item.action}</strong>
-                        <span>{item.detail}</span>
-                        <code>{item.hash}</code>
-                      </div>
-                    ))}
-                  </div>
-                </section>
+                {activeRun?.replay ? (
+                  <CombatReplayView
+                    replay={activeRun.replay}
+                    cards={cards}
+                    character={selectedCharacter}
+                    enemy={selectedEnemy}
+                    trace={activeRun.result.actions}
+                  />
+                ) : (
+                  <section className="draw-section">
+                    <div className="section-title"><h3>Opening hand</h3><span>Seed {seed} · shuffle stream</span></div>
+                    <div className="card-hand">
+                      {winningResult.opening.map((card, index) => (
+                        <div className="mini-card" key={`${card}-${index}`}>
+                          <img src={assetUrl(cards[card]?.asset ?? null)} alt={`${cards[card]?.name ?? card} card`} />
+                          <span>{cards[card]?.name ?? card}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </>
             ) : (
               <div className="empty-state">
@@ -474,25 +560,15 @@ export default function Home() {
             )}
           </section>
         </section>
-
-        <section className="method" id="method">
-          <div className="method-heading">
-            <p className="eyebrow">Method</p>
-            <h2>How the solver works</h2>
-            <p>The simulator is deterministic, catalog-pinned, and runs entirely in the browser.</p>
-          </div>
-          <div className="method-grid">
-            <article><span>01</span><h3>Freeze the inputs</h3><p>Catalog identity, deck, enemy HP, relics, seed, and ascension are captured in a strict setup.</p></article>
-            <article><span>02</span><h3>Explore safely</h3><p>Every branch owns its state and RNG counters, so search order cannot alter future draws.</p></article>
-            <article><span>03</span><h3>Prove the result</h3><p>The first victory removed from the loss-ordered frontier has the minimum possible HP loss.</p></article>
-          </div>
-        </section>
       </main>
-
-      <footer>
-        <span>Rusty Spire · deterministic isolated combat simulator</span>
-        <span>Game artwork sourced from <a href="https://spire-codex.com/developers" target="_blank" rel="noreferrer">Spire Codex ↗</a></span>
-      </footer>
+      {stateEditorOpen && (
+        <CombatStateEditor
+          manifest={manifest}
+          setup={setup}
+          onApply={applyCombatState}
+          onClose={() => setStateEditorOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -3,10 +3,10 @@ id: SPEC-005
 title: Combat Initialization and Transition Semantics
 status: accepted
 domain: combat
-version: 1
+version: 2
 applies_to: v0.3
 depends: [SPEC-003, SPEC-004]
-sources: [crates/rusty-spire-combat/src/setup.rs, crates/rusty-spire-combat/src/engine.rs, crates/rusty-spire-data/src/catalog.rs, packages/spire-codex-stable-v0.107.1.json]
+sources: [crates/rusty-spire-combat/src/setup.rs, crates/rusty-spire-combat/src/engine.rs, crates/rusty-spire-data/src/catalog.rs, packages/spire-codex-stable-v0.107.1.json, specs/content/implemented-v1.json, specs/content/published-v1.json]
 ---
 
 # SPEC-005: Combat Initialization and Transition Semantics
@@ -38,6 +38,8 @@ pub fn legal_actions(&self, state: &CombatState) -> Result<Vec<Action>, Simulato
 pub fn step(&self, state: &CombatState, action: &Action)
     -> Result<CombatState, SimulatorError>;
 pub fn state_id(&self, state: &CombatState) -> Result<String, SimulatorError>;
+pub fn enemy_intent(&self, state: &CombatState, enemy_id: &str)
+    -> Result<EnemyIntent, SimulatorError>;
 ```
 
 `state_hash` is the v0.2-compatible name for `state_id`. Both validate the
@@ -207,6 +209,13 @@ No legal actions exist after terminal status.
 The executable v0.3 content set **MUST** be limited to this matrix. All listed cards
 support base and upgraded forms; arrows are execution order.
 
+The reviewed [implementation ledger](content/implemented-v1.json) is the
+machine-readable contract for realization status, special mechanics, requirements,
+and checks. The generated [publication ledger](content/published-v1.json) records the
+exact effects distributed in the committed stable package. An entry marked
+`recognized_inert` is published and accepted by isolated combat, but its actual game
+effect is outside the implemented lifecycle; it MUST NOT be reported as implemented.
+
 | Card | Character / cost | Base → upgraded behavior |
 |---|---|---|
 | Adrenaline | Silent / 0 | energy 1→2 → draw 2 → exhaust |
@@ -242,6 +251,16 @@ vocabulary effect list, so an alternate valid package can execute additional
 combinations. Such combinations are outside conformance and MUST NOT be advertised as
 supported until this specification and its tests are amended.
 
+### CMB-005 — Query effective enemy intent without advancing combat
+
+`enemy_intent` MUST validate the supplied snapshot and resolve the named living
+enemy's current package move without mutating state or consuming RNG. Its result
+MUST include enemy and move identifiers plus the effective damage, block, and power
+application that `end_turn` would execute from that state. Damage MUST use the same
+Strength, Weak, and Vulnerable calculation as the transition engine; block and
+power MUST use the same tough/deadly ascension flags. Unknown, dead, or unsupported
+enemies and moves MUST fail through the normal simulator errors.
+
 ## Conformance
 
 | Requirement | Automated evidence | Required assertions |
@@ -249,7 +268,8 @@ supported until this specification and its tests are amended.
 | CMB-001 | `test:combat_initialize`; `initializes_stable_instances_and_rng_vectors`; `identical_setup_replays_opening_actions_and_hash`; `rejects_unknown_ids_and_multi_enemy_execution` | Identity, validation, stream vectors, HP roll, shuffle, and opening hand are deterministic |
 | CMB-002 | `test:effect_validation`; `survivor_resolves_its_discard_as_a_branchable_choice`; `hash_distinguishes_rng_counters`; `branch_order_cannot_change_repeated_transition` | Legal actions, effect FIFO, choices, piles, damage, and RNG state conform |
 | CMB-003 | `test:combat_transitions`; `neutralize_weak_reduces_the_next_enemy_attack`; `fuzzy_wurm_crawler_uses_its_fixed_scaling_cycle`; `nibbit_cycle_and_ascenders_bane_are_exact` | Cleanup, moves, power ticks, next turn, and terminal stop follow the specified order |
-| CMB-004 | `test:proof_slice_cards`; `supported_mechanics_match_the_pinned_spire_codex_contract`; `composable_effect_cards_follow_reviewed_order_and_upgrades`; `catalog_drives_ascension_moves_and_inert_relics` | Every matrix row and both upgrade levels use promoted values and reviewed ordering |
+| CMB-004 | `check:content_status`; `test:combat`; `test:proof_slice_cards` | Ledgers cover every published card/relic, distinguish inert content, and link promoted effects to registered checks |
+| CMB-005 | `test:replay`; `enemy_intent_is_effective_and_does_not_advance_state` | Effective intent matches transition rules without changing state identity |
 
 An accepted content row MUST have promoted evidence, package validation, an
 engine handler, and a conformance assertion. A package-only record is not enough.
@@ -260,6 +280,7 @@ engine handler, and a conformance assertion. A package-only record is not enough
 - [SPEC-004: Spire Codex Evidence and Data Packages](004-data.md)
 - [Pinned v0.107.1 data package](../packages/spire-codex-stable-v0.107.1.json)
 - [Reviewed effect declarations](../packages/reviewed-effects-v1.json)
+- [Content status ledgers](content/README.md)
 - [Combat engine](../crates/rusty-spire-combat/src/engine.rs)
 - [Setup initialization](../crates/rusty-spire-combat/src/setup.rs)
 - [Traceability manifest](traceability.json)

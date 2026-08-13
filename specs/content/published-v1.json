@@ -1,0 +1,304 @@
+{
+  "cards": {
+    "CARD.ADRENALINE": {
+      "effects": [
+        {
+          "amount": {
+            "base": 1,
+            "upgraded": 2
+          },
+          "type": "energy"
+        },
+        {
+          "amount": {
+            "base": 2,
+            "upgraded": 2
+          },
+          "type": "draw"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [
+        "Exhaust"
+      ],
+      "name": "Adrenaline",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.ASCENDERS_BANE": {
+      "effects": [],
+      "implementation_status": "implemented",
+      "keywords": [
+        "Ethereal",
+        "Unplayable",
+        "Eternal"
+      ],
+      "name": "Ascender's Bane",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.BACKFLIP": {
+      "effects": [
+        {
+          "amount": {
+            "base": 5,
+            "upgraded": 8
+          },
+          "type": "block"
+        },
+        {
+          "amount": {
+            "base": 2,
+            "upgraded": 2
+          },
+          "type": "draw"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [],
+      "name": "Backflip",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.BASH": {
+      "effects": [
+        {
+          "amount": {
+            "base": 8,
+            "upgraded": 10
+          },
+          "type": "damage"
+        },
+        {
+          "amount": {
+            "base": 2,
+            "upgraded": 3
+          },
+          "id": "POWER.VULNERABLE_POWER",
+          "type": "apply_power"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [],
+      "name": "Bash",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.DEFEND_IRONCLAD": {
+      "effects": [
+        {
+          "amount": {
+            "base": 5,
+            "upgraded": 8
+          },
+          "type": "block"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [],
+      "name": "Defend",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.DEFEND_SILENT": {
+      "effects": [
+        {
+          "amount": {
+            "base": 5,
+            "upgraded": 8
+          },
+          "type": "block"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [],
+      "name": "Defend",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.IRON_WAVE": {
+      "effects": [
+        {
+          "amount": {
+            "base": 5,
+            "upgraded": 7
+          },
+          "type": "block"
+        },
+        {
+          "amount": {
+            "base": 5,
+            "upgraded": 7
+          },
+          "type": "damage"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [],
+      "name": "Iron Wave",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.NEUTRALIZE": {
+      "effects": [
+        {
+          "amount": {
+            "base": 3,
+            "upgraded": 4
+          },
+          "type": "damage"
+        },
+        {
+          "amount": {
+            "base": 1,
+            "upgraded": 2
+          },
+          "id": "POWER.WEAK_POWER",
+          "type": "apply_power"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [],
+      "name": "Neutralize",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.POMMEL_STRIKE": {
+      "effects": [
+        {
+          "amount": {
+            "base": 9,
+            "upgraded": 10
+          },
+          "type": "damage"
+        },
+        {
+          "amount": {
+            "base": 1,
+            "upgraded": 2
+          },
+          "type": "draw"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [],
+      "name": "Pommel Strike",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.STRIKE_IRONCLAD": {
+      "effects": [
+        {
+          "amount": {
+            "base": 6,
+            "upgraded": 9
+          },
+          "type": "damage"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [],
+      "name": "Strike",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.STRIKE_SILENT": {
+      "effects": [
+        {
+          "amount": {
+            "base": 6,
+            "upgraded": 9
+          },
+          "type": "damage"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [],
+      "name": "Strike",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    },
+    "CARD.SURVIVOR": {
+      "effects": [
+        {
+          "amount": {
+            "base": 8,
+            "upgraded": 11
+          },
+          "type": "block"
+        },
+        {
+          "amount": 1,
+          "type": "discard"
+        }
+      ],
+      "implementation_status": "implemented",
+      "keywords": [],
+      "name": "Survivor",
+      "upgrade_levels": [
+        0,
+        1
+      ]
+    }
+  },
+  "generated_from": [
+    "specs/content/implemented-v1.json",
+    "packages/spire-codex-stable-v0.107.1.json"
+  ],
+  "implementation_contract": "specs/content/implemented-v1.json",
+  "kind": "published_content",
+  "package": {
+    "game_version": "v0.107.1",
+    "package_id": "spire-codex-stable-v0.107.1",
+    "path": "packages/spire-codex-stable-v0.107.1.json",
+    "sha256": "9b2e1f9e740d052e3b2e6aad8e5cdf3cf221219c083a90524308cda6dcdb4e8d",
+    "source_channel": "stable"
+  },
+  "relics": {
+    "RELIC.BURNING_BLOOD": {
+      "combat_effect": {
+        "type": "inert"
+      },
+      "implementation_status": "recognized_inert",
+      "name": "Burning Blood"
+    },
+    "RELIC.RING_OF_THE_SNAKE": {
+      "combat_effect": {
+        "amount": 2,
+        "type": "additional_opening_draw"
+      },
+      "implementation_status": "implemented",
+      "name": "Ring of the Snake"
+    },
+    "RELIC.WINGED_BOOTS": {
+      "combat_effect": {
+        "type": "inert"
+      },
+      "implementation_status": "recognized_inert",
+      "name": "Winged Boots"
+    }
+  },
+  "schema_version": 1
+}

@@ -47,6 +47,7 @@ the shell. Do not create or rebuild the index unless a maintainer asks.
 | Requirement-to-check mappings | [specs/traceability.json](specs/traceability.json) |
 | Registered automated checks | [specs/checks.json](specs/checks.json) |
 | Public wire schemas | [specs/schemas/](specs/schemas/) |
+| Implemented and published content | [specs/content/](specs/content/) |
 | Data provenance and promotion | [docs/data_sources.md](docs/data_sources.md) |
 | Simulator usage and explanation | [docs/simulator.md](docs/simulator.md) |
 | Web application development | [apps/web/README.md](apps/web/README.md) |

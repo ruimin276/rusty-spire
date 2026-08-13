@@ -16,7 +16,7 @@ let exportsPromise: Promise<SimulatorExports> | undefined;
 
 async function loadSimulator(wasmUrl: string) {
   if (exportsPromise) return exportsPromise;
-  exportsPromise = fetch(wasmUrl)
+  exportsPromise = fetch(wasmUrl, { cache: "no-store" })
     .then((response) => {
       if (!response.ok) throw new Error(`cannot load simulator WASM (${response.status})`);
       return response.arrayBuffer();

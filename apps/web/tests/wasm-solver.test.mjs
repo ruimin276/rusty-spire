@@ -64,3 +64,53 @@ test("serves content through the versioned dispatcher", async () => {
   assert.equal(envelope.value.package.package_id, "spire-codex-stable-v0.107.1");
   assert.ok(envelope.value.cards.some((card) => card.id === "CARD.ADRENALINE"));
 });
+
+test("serves an interactive replay through the versioned dispatcher", async () => {
+  const [wasmBytes, fixtureText] = await Promise.all([
+    readFile(new URL(wasmPath, root)),
+    readFile(new URL("../../fixtures/combat_setup_v2/silent_proof_slice_seed_1.json", root), "utf8"),
+  ]);
+  const { instance } = await WebAssembly.instantiate(wasmBytes, {
+    env: { sls2_now_ms: () => performance.now() },
+  });
+  const wasm = instance.exports;
+  const setup = JSON.parse(fixtureText);
+  const contentInput = new TextEncoder().encode(JSON.stringify({ operation: "content_info" }));
+  const contentPointer = wasm.sls2_alloc(contentInput.length);
+  new Uint8Array(wasm.memory.buffer, contentPointer, contentInput.length).set(contentInput);
+  const contentPacked = wasm.sls2_call_v1(contentPointer, contentInput.length);
+  wasm.sls2_free(contentPointer, contentInput.length);
+  const contentOutputPointer = Number(contentPacked & 0xffff_ffffn);
+  const contentOutputLength = Number(contentPacked >> 32n);
+  const contentOutput = new Uint8Array(wasm.memory.buffer, contentOutputPointer, contentOutputLength).slice();
+  wasm.sls2_free(contentOutputPointer, contentOutputLength);
+  const content = JSON.parse(new TextDecoder().decode(contentOutput)).value;
+  setup.package = content.package;
+
+  const operation = {
+    operation: "solve",
+    request: {
+      schema_version: 1,
+      setup,
+      heuristic: "remaining_enemy_hp",
+      include_replay: true,
+    },
+  };
+  const input = new TextEncoder().encode(JSON.stringify(operation));
+  const pointer = wasm.sls2_alloc(input.length);
+  new Uint8Array(wasm.memory.buffer, pointer, input.length).set(input);
+  const packed = wasm.sls2_call_v1(pointer, input.length);
+  wasm.sls2_free(pointer, input.length);
+  const outputPointer = Number(packed & 0xffff_ffffn);
+  const outputLength = Number(packed >> 32n);
+  const output = new Uint8Array(wasm.memory.buffer, outputPointer, outputLength).slice();
+  wasm.sls2_free(outputPointer, outputLength);
+  const envelope = JSON.parse(new TextDecoder().decode(output));
+
+  assert.equal(envelope.ok, true, envelope.error?.message);
+  assert.equal(envelope.value.replay.frames.length, envelope.value.result.actions.length + 1);
+  assert.equal(envelope.value.replay.frames[0].action, null);
+  assert.ok(envelope.value.replay.frames[0].state.enemies[0].current_intent);
+  assert.equal(envelope.value.replay.frames.at(-1).state.status, "won");
+  assert.equal(envelope.value.replay.frames.at(-1).state.player.hp, envelope.value.result.final_hp);
+});

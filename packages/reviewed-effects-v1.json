@@ -51,8 +51,10 @@
     "CARD.SURVIVOR": "spire-codex/cards/survivor.webp",
     "CARD.BACKFLIP": "spire-codex/cards/backflip.webp",
     "CARD.ADRENALINE": "spire-codex/cards/adrenaline.webp",
+    "CARD.ASCENDERS_BANE": "spire-codex/cards/ascenders_bane.webp",
     "RELIC.BURNING_BLOOD": "spire-codex/relics/burning_blood.webp",
     "RELIC.RING_OF_THE_SNAKE": "spire-codex/relics/ring_of_the_snake.webp",
+    "RELIC.WINGED_BOOTS": "spire-codex/relics/winged_boots.webp",
     "MONSTER.NIBBIT": "spire-codex/monsters/nibbit.webp",
     "MONSTER.FUZZY_WURM_CRAWLER": "spire-codex/monsters/fuzzy_wurm_crawler.webp",
     "MONSTER.SHRINKER_BEETLE": "spire-codex/monsters/shrinker_beetle.webp"

@@ -48,6 +48,7 @@ Before language jobs, CI MUST run:
 | Spec format and traceability | `python3 tools/specs/check.py` | Invalid or unverified requirement set |
 | Generated contracts | `python3 tools/specs/generate_contracts.py --check` | Schema/TypeScript drift |
 | Data package | `python3 tools/spire-codex/verify.py` | Non-reproducible promoted package |
+| Content status | `python3 tools/specs/generate_content_status.py --check` | Implementation/publication drift |
 | Crate boundaries | `python3 tools/specs/check_architecture.py` | Forbidden dependency edge |
 
 Every accepted requirement MUST map through `traceability.json` to one or more IDs in
@@ -147,7 +148,7 @@ optimality claims and MUST NOT block v0.3 merges.
 
 | Requirement | Automated evidence | Review evidence |
 |---|---|---|
-| CI-001 | `check:specifications`, `check:schemas`, `check:data_verify`, `check:architecture` | Governance is prerequisite for language jobs |
+| CI-001 | `check:specifications`, `check:schemas`, `check:data_verify`, `check:content_status`, `check:architecture` | Governance is prerequisite for language jobs |
 | CI-002 | `check:rust_quality`, `test:workspace` | Locked native and WASM commands match workflow |
 | CI-003 | `test:spire_codex_tools`, `test:spec_tools`, `test:web`, `test:shared_service` | All active language surfaces remain mandatory |
 | CI-004 | `check:release_artifacts`, `check:schemas`, `check:data_verify`, `check:wasm_fingerprint` | No Spire Codex fetch or byte-reproducible WASM overclaim |

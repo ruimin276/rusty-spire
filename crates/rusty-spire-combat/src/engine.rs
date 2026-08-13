@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{HashSet, VecDeque};
 
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use rusty_spire_core::{
@@ -69,6 +70,24 @@ pub struct Simulator<'a> {
 }
 
 pub type CombatEngine<'a> = Simulator<'a>;
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct EnemyIntent {
+    pub enemy_id: String,
+    pub move_id: String,
+    pub damage: Option<i32>,
+    pub block: Option<i32>,
+    pub power: Option<EnemyPowerIntent>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct EnemyPowerIntent {
+    pub model_id: String,
+    pub amount: i32,
+    pub target: String,
+}
 
 #[derive(Clone, Debug)]
 enum Effect {
@@ -343,6 +362,55 @@ impl<'a> Simulator<'a> {
         }
         update_terminal(&mut next);
         Ok(next)
+    }
+
+    /// Describe the move a living enemy will execute without advancing combat state.
+    pub fn enemy_intent(
+        &self,
+        state: &CombatState,
+        enemy_id: &str,
+    ) -> Result<EnemyIntent, SimulatorError> {
+        self.validate_state(state)?;
+        let enemy = state
+            .enemies
+            .iter()
+            .find(|enemy| enemy.combat_id == enemy_id && enemy.hp > 0)
+            .ok_or_else(|| SimulatorError::UnknownId(enemy_id.to_owned()))?;
+        let monster = self
+            .catalog
+            .data
+            .monsters
+            .get(&enemy.model_id)
+            .ok_or_else(|| SimulatorError::UnknownId(enemy.model_id.clone()))?;
+        let movement = monster.moves.get(&enemy.ai.current_move).ok_or_else(|| {
+            SimulatorError::InvalidSnapshot(format!(
+                "unknown {} move {}",
+                enemy.model_id, enemy.ai.current_move
+            ))
+        })?;
+
+        Ok(EnemyIntent {
+            enemy_id: enemy.combat_id.clone(),
+            move_id: enemy.ai.current_move.clone(),
+            damage: movement.damage.as_ref().map(|damage| {
+                attack_damage(
+                    &self.catalog.data,
+                    damage.at(enemy.ai.deadly_enemies),
+                    &enemy.powers,
+                    &state.player.powers,
+                    false,
+                )
+            }),
+            block: movement
+                .block
+                .as_ref()
+                .map(|block| block.at(enemy.ai.tough_enemies)),
+            power: movement.power.as_ref().map(|power| EnemyPowerIntent {
+                model_id: power.id.clone(),
+                amount: power.amount.at(enemy.ai.deadly_enemies),
+                target: power.target.clone(),
+            }),
+        })
     }
 
     pub fn prepare_combat_start(&self, state: &CombatState) -> Result<CombatState, SimulatorError> {
@@ -1418,6 +1486,54 @@ mod tests {
         let after = simulator().step(&weakened, &end).unwrap();
         assert_eq!(after.player.hp, 61);
         assert_eq!(power_amount(&after.enemies[0].powers, WEAK), 0);
+    }
+
+    #[test]
+    fn enemy_intent_is_effective_and_does_not_advance_state() {
+        let simulator = simulator();
+        let mut state = silent_state(NIBBIT, "BUTT_MOVE");
+        state.enemies[0].powers.push(PowerState {
+            model_id: WEAK.into(),
+            amount: 1,
+        });
+        state.player.powers.push(PowerState {
+            model_id: VULNERABLE.into(),
+            amount: 1,
+        });
+        let before = simulator.state_id(&state).unwrap();
+        let intent = simulator
+            .enemy_intent(&state, &state.enemies[0].combat_id)
+            .unwrap();
+        assert_eq!(intent.move_id, "BUTT_MOVE");
+        assert_eq!(intent.damage, Some(13));
+        assert_eq!(intent.block, None);
+        assert_eq!(intent.power, None);
+        assert_eq!(simulator.state_id(&state).unwrap(), before);
+
+        state.combat.ascension_level = Some(9);
+        state.enemies[0].ai.current_move = "SLICE_MOVE".into();
+        state.enemies[0].ai.tough_enemies = true;
+        state.enemies[0].ai.deadly_enemies = true;
+        state.enemies[0].powers.clear();
+        state.player.powers.clear();
+        let slice = simulator
+            .enemy_intent(&state, &state.enemies[0].combat_id)
+            .unwrap();
+        assert_eq!(slice.damage, Some(7));
+        assert_eq!(slice.block, Some(6));
+
+        state.enemies[0].ai.current_move = "HISS_MOVE".into();
+        let hiss = simulator
+            .enemy_intent(&state, &state.enemies[0].combat_id)
+            .unwrap();
+        assert_eq!(
+            hiss.power,
+            Some(EnemyPowerIntent {
+                model_id: STRENGTH.into(),
+                amount: 3,
+                target: "self".into(),
+            })
+        );
     }
 
     #[test]

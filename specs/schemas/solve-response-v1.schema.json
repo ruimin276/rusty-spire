@@ -1,0 +1,81 @@
+{
+  "$id": "https://rusty-spire.dev/schemas/solve-response-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "items": {
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "opening_hand": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "replay": {
+      "additionalProperties": false,
+      "properties": {
+        "frames": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "index": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "resolved_enemy_intents": {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "state": {
+                "type": "object"
+              },
+              "turn": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "index",
+              "turn",
+              "action",
+              "state",
+              "resolved_enemy_intents"
+            ],
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "frames"
+      ],
+      "type": "object"
+    },
+    "result": {
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "result",
+    "opening_hand",
+    "actions"
+  ],
+  "type": "object"
+}

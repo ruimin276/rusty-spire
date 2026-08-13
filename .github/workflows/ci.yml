@@ -43,6 +43,9 @@ jobs:
       - name: Verify deterministic offline data package
         run: python3 tools/spire-codex/verify.py
 
+      - name: Verify implemented and published content ledgers
+        run: python3 tools/specs/generate_content_status.py --check
+
       - name: Enforce crate dependency boundaries
         run: python3 tools/specs/check_architecture.py
 
